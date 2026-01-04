@@ -1,0 +1,16 @@
+table {
+    align-content: center;
+}
+.login, .signup {
+    font-size: 100%;
+    text-align: left;
+    background-color: beige;
+}
+body {
+    background-image: url('../images/sky_background.jpeg');
+    background-color: aqua; /* Fallback color */
+}
+.logo {
+    width: 50%;
+    height: 50%;
+}
