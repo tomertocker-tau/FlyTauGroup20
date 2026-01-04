@@ -9,10 +9,13 @@
     <table align="center">
         <tr>
             <td>
-            <button class="login">התחברות</button>
+            <button class="login" onclick="document.location.href='/login'">התחברות</button>
             </td>
             <td>
-                <button class="signup">התחברות מנהלים</button>
+                <button class="signup" onclick="document.location.href='/signup'">הירשמו</button>
+            </td>
+            <td>
+                <button class="login-admin" onclick="document.location.href='/login-admin'">התחברות למנהלים</button>
             </td>
             <td>
 
@@ -29,6 +32,13 @@
         </tr>
         <tr>
             <td>
+                <form>
+                    <label>שדה מקור</label>
+                    <input type="text">
+                    <label>שדה יעד</label>
+                    <input type="text">
+                    <label></label>
+                </form>
             </td>
         </tr>
     </table>
