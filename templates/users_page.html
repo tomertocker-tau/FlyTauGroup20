@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>/my-account</title>
+</head>
+<body>
+
+<h2>Search Flight</h2>
+
+<form>
+  <!-- Datalist for airports (shared for both fields) -->
+  <datalist id="airports_list">
+    {% for airport in airports %}
+      <option value="{{ airport.name }} ({{ airport.code }})"></option>
+    {% endfor %}
+  </datalist>
+
+  <table>
+    <tr>
+      <!-- Origin -->
+      <td>
+        <label for="origin">From (Airport):</label><br>
+        <input
+          type="text"
+          id="origin"
+          name="origin"
+          list="airports_list"
+          placeholder="Start typing..."
+          required>
+      </td>
+
+      <!-- Destination -->
+      <td>
+        <label for="destination">To (Airport):</label><br>
+        <input
+          type="text"
+          id="destination"
+          name="destination"
+          list="airports_list"
+          placeholder="Start typing..."
+          required>
+      </td>
+
+      <!-- Departure Date -->
+      <td>
+        <label for="departure_date">Departure Date:</label><br>
+        <input
+          type="date"
+          id="departure_date"
+          name="departure_date"
+          required>
+      </td>
+
+      <!-- Passengers -->
+      <td>
+        <label for="passengers">Passengers:</label><br>
+        <input
+          type="number"
+          id="passengers"
+          name="passengers"
+          min="1"
+          step="1"
+          required>
+      </td>
+
+      <!-- Submit -->
+      <td>
+        <br>
+        <button type="submit">Search Flights</button>
+      </td>
+    </tr>
+  </table>
+</form>
+
+<h2>Purchase History</h2>
+
+<form method="get" action="/flight-booking">
+  <label for="status">Filter by status:</label>
+
+  <select id="status" name="status">
+    <option value="" {% if not selected_status %}selected{% endif %}>All</option>
+
+    <option value="Active" {% if selected_status == "Active" %}selected{% endif %}>Active</option>
+    <option value="Completed" {% if selected_status == "Completed" %}selected{% endif %}>Completed</option>
+    <option value="Customer_Cancelled" {% if selected_status == "Customer_Cancelled" %}selected{% endif %}>Customer Cancelled</option>
+    <option value="System_Cancelled" {% if selected_status == "System_Cancelled" %}selected{% endif %}>System Cancelled</option>
+  </select>
+
+  <button type="submit">Apply</button>
+</form>
+
+<br><br>
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Order Number</th>
+      <th>Source Field</th>
+      <th>Destination Field</th>
+      <th>Flight Date</th>
+      <th>Order Price</th>
+      <th>Order Status</th>
+      <th>Cancel</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for row in orders %}
+      <tr>
+        <td>{{ row[0] }}</td>
+        <td>{{ row[1] }}</td>
+        <td>{{ row[2] }}</td>
+        <td>{{ row[3] }}</td>
+        <td>{{ row[4] }}</td>
+        <td>{{ row[5] }}</td>
+
+        <td>
+          {% if row[5] == "Customer_Cancelled" or row[5] == "System_Cancelled" %}
+            <button type="button" disabled>Cancel</button>
+          {% else %}
+            <form method="post" action="/orders/cancel">
+              <input type="hidden" name="order_id" value="{{ row[0] }}">
+              <button type="submit">Cancel</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+
+    {% if orders|length == 0 %}
+      <tr>
+        <td colspan="7">No orders found.</td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>
+
+</body>
+</html>
