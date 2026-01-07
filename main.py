@@ -52,7 +52,6 @@ def signup():
 
 #add to the utils the function that inserts a new user information into the customers table
 '''how to add the phones list to the costumers phones table
-phones = request.form.getlist("phones")
 
 for phone in phones:
     phone = phone.strip()
@@ -65,10 +64,10 @@ for phone in phones:
     )
 '''
 
-@app.route('/login-admin')
+@app.route('/login_admin')
 def login_admin():
     if request.method == 'POST':
-        ID = request.form.get('ID')
+        id = request.form.get('ID')
         password = request.form.get('password')
         with db_cur() as cursor:
             cursor.execute(""""
@@ -80,12 +79,19 @@ def login_admin():
                 return redirect("/managers_page")
 
             return render_template(
-                "login-admin.html", #the comment is probably because we didn't create this html yet
+                "login_admin.html", #the comment is probably because we didn't create this html yet
                 message="Incorrect login details"
             )
     return render_template("login_admin.html")
 @app.route('/')
 def main():
+    if request.method == 'POST':
+        SourceField = request.form.get('SourceField')
+        DestinationField = request.form.get('DestinationField')
+        TakeOffDate = request.form.get('TakeOffDate')
+        PassengersAmount = request.form.get('PassengersAmount')
+        return redirect("/Users_Flight_Table.html")
+
     return render_template("homepage.html")
 
 if __name__ == '__main__':

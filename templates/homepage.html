@@ -9,35 +9,50 @@
     <table align="center">
         <tr>
             <td>
-            <button class="login" onclick="document.location.href='/login'">התחברות</button>
+            <button class="login" onclick="document.location.href='/login'">Login</button>
             </td>
             <td>
-                <button class="signup" onclick="document.location.href='/signup'">הירשמו</button>
+                <button class="signup" onclick="document.location.href='/signup'">Signup</button>
             </td>
             <td>
-                <button class="login-admin" onclick="document.location.href='/login-admin'">התחברות למנהלים</button>
-            </td>
-            <td>
-
-            </td>
-            <td>
-                <h1>ברוכים הבאים לחברת FlyTau</h1>
+                <button class="login-admin" onclick="document.location.href='/login_admin'">Admin Login</button>
             </td>
             <td>
 
             </td>
             <td>
-                <img class="logo" src="../images/flytau_logo.png">
+                <h1>Welcome to FlyTau</h1>
+            </td>
+            <td>
+
+            </td>
+            <td>
+                <img class="logo" src="../images/flytau_logo.png" alt="clouds">
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <p>Order a Flight<p>
+            </td>
+            <td>
+                <button class="option_button" onclick="document.location.href='/manage_booking'">Manage Booking</button>
+            </td>
+            <td>
+                <button class="option_button" onclick="document.location.href='/flight_table'">Flight Table</button>
             </td>
         </tr>
         <tr>
             <td>
                 <form>
-                    <label>שדה מקור</label>
-                    <input type="text">
-                    <label>שדה יעד</label>
-                    <input type="text">
-                    <label></label>
+                    <label for="SourceField">Source Field</label>
+                    <input type="text" id= "SourceField" name="SourceField">
+                    <label for="DestinationField">Destination Field</label>
+                    <input type="text" id="DestinationField" name="DestinationField">
+                    <label for="TakeOffDate">Takeoff Time</label>
+                    <input type="date" id="TakeOffDate" name="TakeOffDate">
+                    <label for="PassengersAmount">Amount of Passengers</label>
+                    <input type="text" id="PassengersAmount" name="PassengersAmount">
+                    <input type="submit" value="Search" class="important_button">
                 </form>
             </td>
         </tr>
