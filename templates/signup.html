@@ -7,14 +7,21 @@
 <body>
 <h1>Sign up</h1>
 <form>
-    <label>First Name (Eng)</label><input type="text" id="FirstName">
-    <label>Last Name (Eng)</label><input type="text" id="LastName">
-    <label>email:</label><input type="email" id="Email">
-    <label>birth date: </label><input type="date" id="Biethdate">
-    <label>passport id</label><input type="number" id="PassportID">
-    <label>מגורים</label>
-    <label>Phone Number(s)</label><input type="tel" multiple id="Phones">
-<label>password:</label><input type="password" id="Password">
-<input type="submit"></form>
+    <label for="FirstName">First Name (Eng)</label>
+    <input type="text" id="FirstName" name="First_name">
+    <label for="LastName">Last Name (Eng)</label>
+    <input type="text" id="LastName" name="Last_name">
+    <label for="Email">email:</label>
+    <input type="email" id="Email" name="email">
+    <label for="Birthdate">Birthdate: </label>
+    <input type="date" id="Birthdate" name="date_of_birth">
+    <label for="Passport_num">Passport Number:</label>
+    <input type="number" id="Passport_num" name="passport_num">
+    <label for="Phones">Phone Number(s):</label>
+    <input type="tel" multiple id="Phones" name="phones">
+    <label for="Password">Password:</label>
+    <input type="password" id="Password" name="password">
+    <input type="submit" value="register" class="important_button">
+</form>
 </body>
 </html>

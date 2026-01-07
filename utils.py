@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 import mysql.connector
-from datetime import datetime
+from datetime import datetime, date
 from typing import Union, Dict, List, Tuple
 
 @contextmanager
@@ -29,6 +29,10 @@ def insert(table_name: str, data: Dict[str,str]):
     with db_cur() as cursor:
         cursor.execute(f"INSERT INTO {table_name}({', '.join(data.keys())}) "
                      f"VALUES({', '.join(data.keys())})")
+
+def delete(table_name: str, where: str):
+    with db_cur() as cursor:
+        cursor.execute(f"DELETE FROM {table_name} WHERE {where}")
 
 def select(table_name: str, columns: List[str] = None, where: str =None, group_by:str=None, cases: Dict[str,str]=None):
     with db_cur() as cursor:
@@ -129,3 +133,40 @@ def get_past_flights(include_deleted: bool = False):
                       where="F.TakeOffTime <= NOW() AND F.IsDeleted==0")
 
 
+
+def insert_customer_details(First_name : str,
+                            Last_name: str,
+                            email: str,
+                            password: str,
+                            passport_num: int,
+                            date_of_birth: date,
+                            signup_date: date,
+                            is_signed_up: bool = True):
+    dict_details = {"FirstName": First_name,
+                    "LastName": Last_name,
+                    "Email": email,
+                    "Password": password,
+                    "PassportID": passport_num,
+                    "BirthDate": date_of_birth,
+                    "SignupDate": signup_date}
+    if is_signed_up:
+        assert passport_num is not None and password and signup_date and date_of_birth
+        dict_details.update({"Password": password,
+                             "PassportID": passport_num,
+                             "BirthDate": date_of_birth,
+                             "SignupDate": signup_date})
+        table_name = "Customers"
+    else:
+        table_name = "Guests"
+    insert(table_name, dict_details)
+
+def insert_phones(email: str, phones: List[str], is_signed_up: bool = True):
+    table_name = "CustomersPhoneNumbers" if is_signed_up else "GuestsPhoneNumbers"
+    for phone in phones:
+        phone = phone.strip()
+        if select(table_name,
+                  [f"{table_name}.Email", f"{table_name}.Phone"],
+                  where=f"{table_name}.Email={email} AND {table_name}.Phone={phone}"):
+            continue
+        else:
+            insert(table_name, {"Email": email, "Phone": phone})
