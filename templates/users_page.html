@@ -8,7 +8,7 @@
 
 <h2>Search Flight</h2>
 
-<form>
+<form id="flight_search_form" action="/flights" method="get">
   <!-- Datalist for airports (shared for both fields) -->
   <datalist id="airports_list">
     {% for airport in airports %}
@@ -75,7 +75,7 @@
 
 <h2>Purchase History</h2>
 
-<form method="get" action="/flight-booking">
+<form id="status_filter_form" method="get" action="/flight-booking">
   <label for="status">Filter by status:</label>
 
   <select id="status" name="status">
@@ -119,7 +119,7 @@
           {% if row[5] == "Customer_Cancelled" or row[5] == "System_Cancelled" %}
             <button type="button" disabled>Cancel</button>
           {% else %}
-            <form method="post" action="/orders/cancel">
+            <form id="flight_cancel" method="post" action="/orders/cancel">
               <input type="hidden" name="order_id" value="{{ row[0] }}">
               <button type="submit">Cancel</button>
             </form>
