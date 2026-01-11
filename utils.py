@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 import mysql.connector
-from datetime import datetime, date
+from datetime import datetime, date, time
 from typing import Union, Dict, List, Tuple
 
 @contextmanager
@@ -304,13 +304,80 @@ def find_flights_by(source_field: str = None,
     else:
         return select("Flights",columns, where=" AND ".join(conditions))
 
+def locate_attendants_query():
+    q_attendants = get_select_query("Flights",
+                                    ["FlightID", "SourceField", "DestinationField", "TakeOffTime"],
+                                    join=("WorkingFlightAttendants", ["FlightID"]))
+    q_when_attendants = get_select_query(f"({q_attendants}) AS FA",
+                                         ["AttendantID", "MAX(TakeOffTime) AS TakeOffTime"],
+                                         group_by=["AttendantID"])
+    q_where_attendants = get_select_query(f"({q_attendants}) AS FB",
+                                          ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"],
+                                          join=(f"({q_when_attendants}) AS FC", ["FlightID"]))
+    q_all_attendants = get_select_query(f"({q_where_attendants}) AS F",
+                                        ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"],
+                                        join=("FlightAttendants", ["AttendantID"]),
+                                        side_join="Right")
+    return get_select_query(f"({q_all_attendants}) AS Ftag",
+                            ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"])
 
+def locate_pilots_query():
+    q_pilots = get_select_query("Flights",
+                                    ["FlightID", "SourceField", "DestinationField", "TakeOffTime"],
+                                    join=("WorkingPilots", ["FlightID"]))
+    q_when_pilots = get_select_query(f"({q_pilots}) AS FA",
+                                         ["PilotID", "MAX(TakeOffTime) AS TakeOffTime"],
+                                         group_by=["PilotID"])
+    q_where_pilots = get_select_query(f"({q_pilots}) AS FB",
+                                          ["PilotID", "SourceField", "DestinationField", "TakeOffTime"],
+                                          join=(f"({q_when_pilots}) AS FC", ["FlightID"]))
+    q_all_pilots = get_select_query(f"({q_where_pilots}) AS F",
+                                        ["PilotID", "SourceField", "DestinationField", "TakeOffTime"],
+                                        join=("Pilots", ["PilotID"]),
+                                        side_join="Right")
+    return get_select_query(f"({q_all_pilots}) AS Ftag",
+                            ["PilotID", "SourceField", "DestinationField", "TakeOffTime"])
 
+def attendants_on_land_query(landing_time: datetime):
+    q_locate = locate_attendants_query()
+    q_join = get_select_query(f"({q_locate}) AS Ftag_A",
+                              join=("Routes", ["SourceField", "DestinationField"]),
+                              side_join="Outer")
+    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
+                                 ["AttendantID", "DestinationField", "TakeOffTime", "TakeOffTime + FlightDuration AS LandingTime"])
+    return get_select_query(f"({q_landing}) AS Ftag_C",
+                            where=f"LandingTime<{landing_time} OR LandingTime IS NULL")
 
+def pilots_on_land_query(landing_time: datetime):
+    q_locate = locate_pilots_query()
+    q_join = get_select_query(f"({q_locate}) AS Ftag_A",
+                              join=("Routes", ["SourceField", "DestinationField"]),
+                              side_join="Outer")
+    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
+                                 ["PilotID", "DestinationField", "TakeOffTime",
+                                  "TakeOffTime + FlightDuration AS LandingTime"])
+    return get_select_query(f"({q_landing}) AS Ftag_C",
+                            where=f"LandingTime<{landing_time} OR LandingTime IS NULL")
 
+def get_available_pilots(on_time: datetime, required_qualify: bool = False):
+    if required_qualify:
+        q_required = get_select_query("Pilots",
+                                      ["PilotID"],
+                                      where="Qualified4LongFlights==1")
+        return select(f"({attendants_on_land_query(on_time)}) AS AvailablePilots",
+                      ["PilotID"],
+                      join=(f"({q_required}) AS RequiredPilots", ["PilotID"]))
+    return select(f"({pilots_on_land_query(on_time)}) AS AvailablePilots",
+                  ["PilotID"])
 
-
-
-
-
+def get_available_attendants(on_time: datetime, required_qualify: bool = False):
+    if required_qualify:
+        q_required = get_select_query("FlightAttendants",
+                                      ["AttendantID"],
+                                      where="Qualified4LongFlights==1")
+        return select(f"({attendants_on_land_query(on_time)}) AS AvailableAttendants",
+                      ["AttendantID"],
+                      join=(f"({q_required}) AS RequiredAttendants",["AttendantID"]))
+    return select(f"({attendants_on_land_query(on_time)}) AS AvailableAttendants",
+                  ["AttendantID"])
 
