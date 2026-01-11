@@ -234,41 +234,70 @@ def count_available_seats_query():
                                 "AS": "AvailableSeats"
                             })
 
-'''def available_class_prices():
+def available_class_prices_query(atleast: int  = 1):
+
+    count_seats = count_available_seats_query()
+    if atleast < 1:
+        atleast = 1
+    prices_by_class = get_select_query(f"({count_seats}) AS CAS",
+                                       ["FlightID","ClassType"],
+                                       where=f"AvailableSeats > {atleast}",
+                                       join=("FlightPrices", ["FlightID", "ClassType"]))
+    return prices_by_class
+
+def table_class_prices_query(atleast: int = 1):
     classes = select("Class", ["ClassType"], group_by=["ClassType"])[0]
-    '''
+    t_cols = ""
+    price_seats = available_class_prices_query(atleast)
+    for i, cls in enumerate(classes):
+
+        tmp= get_select_query(f"({price_seats}) AS ACP{cls}",
+                              ["FlightID", f"Price AS {cls}_price"],
+                              where=f"ACP{cls}.AvailableSeats > 0 AND ACP{cls}.ClassType = {cls}")
+        if i == 0:
+            t_cols = tmp
+        else:
+            t_cols = get_select_query(f"({price_seats}) AS PBF{cls}",
+                                      ["Flight_ID"]+[f"{classes[j]}_price" for j in range(i)],
+                                      join=(f"PBF{cls}", ["Flight_ID"]),
+                                      side_join="Outer")
+    return t_cols
+
 
 
 
 def find_flights_by(source_field: str = None,
                     destination_field: str = None,
                     take_off_date: date = None,
+                    before_date : date = None,
+                    after_date: date = None,
                     num_seats: int = None):
-    if not any([source_field, destination_field, take_off_date, num_seats]):
-        return get_future_flights()
+    columns = ["Flights.FlightID",
+               "Flights.SourceField",
+               "Flights.DestinationField",
+               "DATE(Flights.TakeOffTime)"]
+    conditions = ["IsDeleted==0"]
+    if source_field:
+        conditions.append(f"Flights.SourceField=={source_field}")
+    if destination_field:
+        conditions.append(f"Flights.DestinationField=={destination_field}")
+    if take_off_date:
+        conditions.append(f"DATE(Flights.TakeOffTime)=={take_off_date}")
+    if before_date:
+        conditions.append(f"DATE(Flights.TakeOffTime)<{before_date}")
+    if after_date:
+        conditions.append(f"DATE(Flights.TakeOffTime)>{after_date}")
+    if num_seats:
+        subquery = table_class_prices_query(num_seats)
+        allquery = get_select_query("Flights",
+                                    columns,
+                                    where=" AND ".join(conditions),
+                                    join=(f"({subquery}) AS F",["FlightID"]))
+        return select(f"({allquery}) AS FF",
+                      where=" AND ".join(conditions),
+                      join=("Flights", ["FlightID"]))
     else:
-        columns = ["Flights.FlightID",
-                   "Flights.SourceField",
-                   "Flights.DestinationField",
-                   "DATE(Flights.TakeOffTime)"]
-        conditions = ["IsDeleted==0"]
-        if source_field:
-            conditions.append(f"Flights.SourceField=={source_field}")
-        if destination_field:
-            conditions.append(f"Flights.DestinationField=={destination_field}")
-        if take_off_date:
-            conditions.append(f"DATE(Flights.TakeOffTime)=={take_off_date}")
-        if num_seats:
-            subquery = count_available_seats_query()
-            allquery = get_select_query("Flights",
-                                        columns,
-                                        where=" AND ".join(conditions),
-                                        join=(f"({subquery}) AS F",["FlightID"]))
-            return select(f"({allquery}) AS FF",
-                          where=" AND ".join(conditions),
-                          join=("Flights", ["FlightID"]))
-        else:
-            return select("Flights",columns, where=" AND ".join(conditions))
+        return select("Flights",columns, where=" AND ".join(conditions))
 
 
 
