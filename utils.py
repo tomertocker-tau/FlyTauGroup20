@@ -207,7 +207,7 @@ def insert_phones(email: str, phones: List[str], is_signed_up: bool = True):
         else:
             insert(table_name, {"Email": email, "Phone": phone})
 
-def count_occupied_seats_query():
+def occupied_seats_by_flight_and_class_query():
     customer_query = get_select_query("CustomerOrders",
                                       ["OrderID", "FlightID", "ClassType", "PlainID"],
                                       join=("SelectedSeatsCustomerOrders", ["OrderID"]))
@@ -215,6 +215,11 @@ def count_occupied_seats_query():
                                     ["OrderID", "FlightID", "ClassType", "PlainID"],
                                     join=("SelectedSeatsGuestOrders", ["OrderID"]))
     union_query = f"(({customer_query}) UNION ({guests_query})) AS S"
+    return union_query
+
+
+def count_occupied_seats_query():
+    union_query = occupied_seats_by_flight_and_class_query()
     return get_select_query(union_query, ["S.FlightID", "S.ClassType", "S.PlainID", "COUNT(S.OrderID) AS OccupiedSeats"],
                   group_by=["FlightID", "ClassType", "PlainID"])
 
@@ -380,4 +385,25 @@ def get_available_attendants(on_time: datetime, required_qualify: bool = False):
                       join=(f"({q_required}) AS RequiredAttendants",["AttendantID"]))
     return select(f"({attendants_on_land_query(on_time)}) AS AvailableAttendants",
                   ["AttendantID"])
+
+
+def get_available_seats(flight_id : Union[str, int], class_type: str):
+    q_flights = get_select_query("FlightPrices",
+                                 ["FlightID", "PlainID", "ClassType"],
+                                 where=f"FlightPrices.FlightID={flight_id} AND FlightPrices.ClassType={class_type}",
+                                 join=("Class", ["PlainID","ClassType"]))
+    rows, cols = select(f"({q_flights}) AS FP",
+                        ["Rows", "Cols"])[0]
+    q_occupied = occupied_seats_by_flight_and_class_query()
+    occupied = select(f"({q_occupied}) AS O",
+                      ["Line", "SeatLetter"],
+                      where=f"O.FlightID=={flight_id} AND O.ClassType=={class_type}")
+    seats_matrix = []
+    for r in range(1, rows + 1):
+        seats_matrix.append([])
+        for c in range(1, cols + 1):
+            isin_occupied = (r,c) in occupied
+            seats_matrix[-1].append(isin_occupied)
+    return seats_matrix
+
 
