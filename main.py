@@ -44,7 +44,7 @@ def login():
             )
     return render_template("login.html")
 
-@app.route('/signup')
+@app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         First_name = request.form.get('First_name')
@@ -73,7 +73,7 @@ def signup():
 
 
 
-@app.route('/login_admin')
+@app.route('/login_admin', methods=['GET', 'POST'])
 def login_admin():
     if request.method == 'POST':
         id = request.form.get('ID')
@@ -93,7 +93,7 @@ def login_admin():
                 message="Incorrect login details"
             )
     return render_template("login_admin.html")
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def main():
     if request.method == 'POST':
         SourceField = request.form.get('SourceField')
@@ -103,6 +103,27 @@ def main():
         return redirect("/Users_Flight_Table.html")
 
     return render_template("homepage.html")
+
+@app.route('/flights', methods=['GET', 'POST'])
+def users_page():
+    if request.method == 'POST':
+        origin = request.form.get('origin')
+        destination = request.form.get('destination')
+        departure_date = request.form.get('departure_date')
+        passengers = request.form.get('passengers')
+        return redirect("/Users_Flight_Table.html")
+
+    return render_template("users_page.html")
+
+@app.route("/orders/cancel", methods=["POST"])
+def cancel_order():
+    order_id = int(request.form.get("order_id"))
+
+    return redirect(url_for("my_account"))
+
+@app.route("/flight-booking", methods=["GET"])
+def filter_orders():
+    status = request.args.get("status")
 
 if __name__ == '__main__':
     app.run(debug=True)
