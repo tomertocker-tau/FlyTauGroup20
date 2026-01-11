@@ -407,3 +407,26 @@ def get_available_seats(flight_id : Union[str, int], class_type: str):
     return seats_matrix
 
 
+def get_customer_history(customer_id: Union[str, int], status: str = None):
+    '''
+
+    :param customer_id:
+    :param status:
+    :return: OrderID, ClassType, NumSeats, SourceField, DestinationField, TakeOffTime, OrderPrice, Status
+    '''
+    q_seats = occupied_seats_by_flight_and_class_query()
+    status_condition = f" AND CustomerOrders.Status={status}" if status else ""
+    q_with_client = get_select_query(q_seats,
+                                     ["OrderID", "FlightID", "ClassType"],
+                                     join=("CustomerOrders", ["OrderID", "FlightID", "ClassType"]),
+                                     where=f"CustomerOrders.CustomerID={customer_id}"+status_condition)
+    q_count_seats = get_select_query(f"({q_with_client}) AS WithClient",
+                                     ["OrderID", "FlightID", "ClassType", "OrderStatus", "COUNT(OrderID) AS NumSeats"],
+                                     group_by=["OrderID"],
+                                     join=("FlightPrices",["FlightID","ClassType"]))
+    q_orders = get_select_query(f"({q_count_seats}) AS CountSeats",
+                                ["OrderID", "FlightID", "ClassType","NumSeats", "NumSeats*Price AS OrderPrice", "OrderStatus"],
+                                join=("Flights", ["FlightID"]))
+    return select(f"({q_orders}) AS O",
+                  ["OrderID", "ClassType", "NumSeats", "SourceField","DestinationField","TakeOffTime", "OrderPrice", "OrderStatus"])
+
