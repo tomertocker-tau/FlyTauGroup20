@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="board-box">
+        <h2>Our Flights This Month</h2>
+
+        <div class="table-container">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Origin</th>
+                        <th>Destination</th>
+                        <th>Flight No.</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for flight in flights %}
+                    <tr>
+                        <td>{{ flight.datetime }}</td>
+                        <td>{{ flight.origin }}</td>
+                        <td>{{ flight.destination }}</td>
+                        <td>{{ flight.flight_num }}</td>
+                        <td>{{ flight.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not flights %}
+        <div class="no-results">
+            <p>No flights found for this month.</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endblock %}

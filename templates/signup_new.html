@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-container">
+    
+    <div class="auth-box">
+        <div class="auth-header">
+            <h2>Sign up</h2>
+            <p>Join FlyTau today</p>
+        </div>
+
+        <form action="/signup" method="POST" class="auth-form">
+
+            <div class="form-group">
+                <label for="FirstName">First Name (Eng)</label>
+                <input type="text" id="FirstName" name="First_name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="LastName">Last Name (Eng)</label>
+                <input type="text" id="LastName" name="Last_name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="Email">Email:</label>
+                <input type="email" id="Email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="Birthdate">Birthdate:</label>
+                <input type="date" id="Birthdate" name="date_of_birth" required>
+            </div>
+
+            <div class="form-group">
+                <label for="Passport_num">Passport Number:</label>
+                <input type="number" id="Passport_num" name="passport_num" required>
+            </div>
+
+            <div class="form-group">
+                <label for="Phones">Phone Number(s):</label>
+                <input type="tel" id="Phones" name="phones" multiple required>
+            </div>
+
+            <div class="form-group">
+                <label for="Password">Password:</label>
+                <input type="password" id="Password" name="password" required>
+            </div>
+
+            <input type="submit" value="register" class="btn-full-width btn-signup">
+
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an account? <a href="/login">Login here</a></p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

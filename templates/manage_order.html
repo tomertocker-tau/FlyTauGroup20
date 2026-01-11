@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="manage-order-bg">
+    <div class="login-card">
+        <div class="card-header">
+            <h2>Manage Your Booking</h2>
+            <p>View details, select seats, or cancel your flight.</p>
+        </div>
+
+        <form action="/view_order" method="POST" class="login-form">
+            <div class="form-group">
+                <label for="order_id">Order ID</label>
+                <input type="text" id="order_id" name="order_id" placeholder="e.g., 102030" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" placeholder="name@example.com" required>
+            </div>
+
+            <button type="submit" class="btn-full-width">
+                Find My Order <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="card-footer">
+            <a href="/">Cancel & Return Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

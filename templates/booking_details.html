@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="order-management-box">
+        <h2>Manage Order Details</h2>
+
+        <div class="table-container">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Price</th>
+                        <th>Flight Date</th>
+                        <th>Destination</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td>{{ order.price }} $</td>
+                        <td>{{ order.date }}</td>
+                        <td>{{ order.destination }}</td>
+                        <td>{{ order.source }}</td>
+                        <td>{{ order.status }}</td>
+
+                        <td>
+                            <form action="/cancel_confirmation" method="POST">
+                                <input type="hidden" name="order_id" value="{{ order.id }}">
+                                <button type="submit" class="btn-cancel">
+                                    Cancel Order
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="warning-footer">
+            <p class="red-text">Dear user, please note: Bookings can be cancelled up to 36 hours before flight time.</p>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

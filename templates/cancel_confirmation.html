@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-container">
+    
+    <div class="auth-box warning-box">
+        <div class="auth-header">
+            <h2 class="red-text">Cancel Order Confirmation</h2>
+            <p>Order ID: {{ order.id }}</p>
+        </div>
+
+        <div class="cancellation-details">
+            <p>Cancellation is subject to cancellation terms.</p>
+            
+            <h3>The cancellation fee required is: 
+                <span class="price-highlight">{{ (order.price * 0.05) | round(2) }} $</span>
+            </h3>
+            
+            <p>(5% of the total order cost: {{ order.price }} $)</p>
+        </div>
+
+        <div class="action-buttons">
+            <form action="/delete_order" method="POST">
+                <input type="hidden" name="order_id" value="{{ order.id }}">
+                <button type="submit" class="btn-full-width btn-cancel">
+                    Yes, Cancel Order
+                </button>
+            </form>
+
+            <br>
+
+            <form action="/booking_details" method="POST">
+                <input type="hidden" name="order_id" value="{{ order.id }}">
+                <button type="submit" class="btn-full-width btn-secondary">
+                    Go Back (Don't Cancel)
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

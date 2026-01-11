@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlyTau - Homepage</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="logo-container">
+            <img src="{{ url_for('static', filename='images/flytau_logo.png') }}" alt="FlyTau Logo" class="logo-img">
+        </a>
+
+        <div class="nav-buttons">
+            <button class="btn btn-login" onclick="document.location.href='/login'">Login</button>
+            <button class="btn btn-signup" onclick="document.location.href='/signup'">Signup</button>
+            <button class="btn btn-admin" onclick="document.location.href='/login_admin'">Admin Login</button>
+        </div>
+    </nav>
+
+    <div class="hero-section">
+
+        <div class="search-box">
+            <h1>Welcome to FlyTau</h1>
+            <p class="subtitle">Order a Flight</p>
+
+            <div class="action-buttons">
+                <button class="option-btn" onclick="document.location.href='/manage_booking'">
+                    <i class="fas fa-edit"></i> Manage Booking
+                </button>
+                <button class="option-btn" onclick="document.location.href='/flight_table'">
+                    <i class="fas fa-list"></i> Flight Table
+                </button>
+            </div>
+
+            <form action="/search_results" method="POST" class="search-form">
+
+                <div class="form-group">
+                    <label for="SourceField">From (Source)</label>
+                    <input list="airports_list" id="SourceField" name="SourceField" placeholder="Type airport name..." required>
+                    <datalist id="airports_list">
+                        {% for airport in airports %}
+                        <option value="{{ airport }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div class="form-group">
+                    <label for="DestinationField">To (Destination)</label>
+                    <input list="airports_list" id="DestinationField" name="DestinationField" placeholder="Type airport name..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="TakeOffDate">Takeoff Date</label>
+                    <input type="date" id="TakeOffDate" name="TakeOffDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="PassengersAmount">Passengers</label>
+                    <input type="number" id="PassengersAmount" name="PassengersAmount" min="1" max="10" value="1" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="submit" class="submit-btn">Search Flights</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+</body>
+</html>
