@@ -38,11 +38,12 @@ def select(table_name: str,
            columns: List[str] = None,
            where: str =None,
            group_by:List[str]=None,
+           having: str = None,
            cases: Dict[str,str]=None,
            join: Tuple[str, List[str]]=None,
            side_join: str=None):
     with db_cur() as cursor:
-        query = get_select_query(table_name, columns, where, group_by, cases, join, side_join)
+        query = get_select_query(table_name, columns, where, group_by, having, cases, join, side_join)
         cursor.execute(query)
     return cursor.fetchall()
 
@@ -50,6 +51,7 @@ def get_select_query(table_name: str,
                      columns: List[str] = None,
                      where: str =None,
                      group_by:List[str]=None,
+                     having: str=None,
                      cases: Dict[str,str]=None,
                      join : Tuple[str,List[str]] = None,
                      side_join: str = ""):
@@ -94,6 +96,9 @@ def get_select_query(table_name: str,
         query += f" WHERE {where}"
     if group_by:
         query += f" GROUP BY {','.join(group_by)}"
+        if having:
+            query += f" HAVING {having}"
+    return query
 
 
 
