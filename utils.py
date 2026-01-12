@@ -458,11 +458,16 @@ def get_customer_history(email: str, status: str = None):
     :return: OrderID, ClassType, NumSeats, SourceField, DestinationField, TakeOffTime, OrderPrice, Status
     '''
     q_seats = occupied_seats_by_flight_and_class_query()
-    status_condition = f" AND CustomerOrders.Status={status}" if status else ""
+    q_orders_guests = get_select_query("GuestOrders",
+                                       where=f"GuestOrders.Email={email}")
+    q_orders_customers = get_select_query("CustomerOrders",
+                                          where=f"CustomerOrders.Email={email}")
+    q_orders_union = f"(({q_orders_guests}) UNION ({q_orders_customers})) AS UnionOrders"
+    status_condition = f" AND UnionOrders.Status={status}" if status else ""
     q_with_client = get_select_query(q_seats,
                                      ["OrderID", "FlightID", "ClassType"],
-                                     join=("CustomerOrders", ["OrderID", "FlightID", "ClassType"]),
-                                     where=f"CustomerOrders.Email={email}"+status_condition)
+                                     join=(q_orders_union, ["OrderID", "FlightID", "ClassType"]),
+                                     where=f"UnionOrders.Email={email}"+status_condition)
     q_count_seats = get_select_query(f"({q_with_client}) AS WithClient",
                                      ["OrderID", "FlightID", "ClassType", "OrderStatus", "COUNT(OrderID) AS NumSeats"],
                                      group_by=["OrderID"],
