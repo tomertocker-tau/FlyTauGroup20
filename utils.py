@@ -173,18 +173,14 @@ def get_past_flights(include_deleted: bool = False):
 def insert_customer_details(First_name : str,
                             Last_name: str,
                             email: str,
-                            password: str,
-                            passport_num: int,
-                            date_of_birth: date,
-                            signup_date: date,
-                            is_signed_up: bool = True):
-    dict_details = {"FirstName": First_name,
-                    "LastName": Last_name,
-                    "Email": email,
-                    "Password": password,
-                    "PassportID": passport_num,
-                    "BirthDate": date_of_birth,
-                    "SignupDate": signup_date}
+                            password: str = None,
+                            passport_num: int = None,
+                            date_of_birth: date = None,
+                            signup_date: date = None,
+                            is_signed_up: bool = False):
+    dict_details = {"EngFirstName": First_name,
+                    "EngLastName": Last_name,
+                    "Email": email}
     if is_signed_up:
         assert passport_num is not None and password and signup_date and date_of_birth
         dict_details.update({"Password": password,
@@ -418,10 +414,10 @@ def get_available_seats(flight_id : Union[str, int], class_type: str):
     return seats_matrix
 
 
-def get_customer_history(customer_id: Union[str, int], status: str = None):
+def get_customer_history(email: str, status: str = None):
     '''
 
-    :param customer_id:
+    :param email:
     :param status:
     :return: OrderID, ClassType, NumSeats, SourceField, DestinationField, TakeOffTime, OrderPrice, Status
     '''
@@ -430,7 +426,7 @@ def get_customer_history(customer_id: Union[str, int], status: str = None):
     q_with_client = get_select_query(q_seats,
                                      ["OrderID", "FlightID", "ClassType"],
                                      join=("CustomerOrders", ["OrderID", "FlightID", "ClassType"]),
-                                     where=f"CustomerOrders.CustomerID={customer_id}"+status_condition)
+                                     where=f"CustomerOrders.Email={email}"+status_condition)
     q_count_seats = get_select_query(f"({q_with_client}) AS WithClient",
                                      ["OrderID", "FlightID", "ClassType", "OrderStatus", "COUNT(OrderID) AS NumSeats"],
                                      group_by=["OrderID"],
