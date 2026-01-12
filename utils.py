@@ -495,3 +495,17 @@ def delete_order(order_id: Union[str, int], is_signed_up: bool = False):
         update("GuestOrders",
                {"OrderStatus":"Deleted"},
                where=f"GuestOrders.OrderID={order_id}")
+
+def get_order(order_id:Union[str, int], email: str):
+    '''
+
+    :param order_id:
+    :param email:
+    :return: OrderID, ClassType, NumSeats SourceField,
+            DestinationField, TakeOffTime, OrderPrice, OrderStatus
+    '''
+    for order in get_customer_history(email):
+        if order["OrderID"] == order_id:
+            return order
+    return {}
+
