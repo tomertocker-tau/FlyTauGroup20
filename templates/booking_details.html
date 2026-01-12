@@ -5,46 +5,63 @@
 
     <div class="order-management-box">
         <h2>Manage Order Details</h2>
+        {% if order %}
+            <div class="table-container">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Class Type</th>
+                            <th>Number of Seats</th>
+                            <th>Source Field</th>
+                            <th>Destination Field</th>
+                            <th>Takeoff Time</th>
+                             <th>Order Price</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ order.OrderID }}</td>
+                            <td>{{ order.ClassType }}</td>
+                            <td>{{ order.NumSeats }}</td>
+                            <td>{{ order.SourceField }} $</td>
+                            <td>{{ order.DestinationField }}</td>
+                            <td>{{ order.TakeOffTime }}</td>
+                            <td>{{ order.OrderPrice }}</td>
+                            <td>{{ order.OrderStatus }}</td>
 
-        <div class="table-container">
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Price</th>
-                        <th>Flight Date</th>
-                        <th>Destination</th>
-                        <th>Source</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{{ order.id }}</td>
-                        <td>{{ order.price }} $</td>
-                        <td>{{ order.date }}</td>
-                        <td>{{ order.destination }}</td>
-                        <td>{{ order.source }}</td>
-                        <td>{{ order.status }}</td>
+                            <td>
+                                {% if show_cancel_button %}
+                                    <form action="/cancel_confirmation" method="POST">
+                                        <input type="hidden" name="order_id" value="{{ order.OrderID }}">
+                                        <button type="submit" class="btn-cancel">
+                                        Cancel Order
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="status-badge status-red">
+                                        Less than 36h
+                                    </span>
+                                {% endif %}
+                            </td>
 
-                        <td>
-                            <form action="/cancel_confirmation" method="POST">
-                                <input type="hidden" name="order_id" value="{{ order.id }}">
-                                <button type="submit" class="btn-cancel">
-                                    Cancel Order
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-        <div class="warning-footer">
-            <p class="red-text">Dear user, please note: Bookings can be cancelled up to 36 hours before flight time.</p>
-        </div>
-
+            <div class="warning-footer">
+                <p class="red-text">
+                    Dear user, please note: Bookings can be cancelled up to 36 hours before flight time.
+                </p>
+            </div>
+        {% else %}
+            <div class="no-order-message">
+                <p>No order was found with the provided details.</p>
+            </div>
+        {% endif %}
     </div>
 
 </div>

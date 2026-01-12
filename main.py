@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from utils import db_cur, check_if_admin
+from utils import db_cur, check_if_admin, get_customer_history
 from flask_session import Session
-from datetime import date,timedelta
+from datetime import date,timedelta, datetime
 import secrets
 import os
 app = Flask(__name__)
@@ -36,7 +36,7 @@ def login():
             if user and user["password"] == password:
                 session.permanent = True
                 session["email"] = user["email"]
-                return redirect("/users_page")
+                return render_template("users_page.html")
 
             return render_template(
                 "login.html",
@@ -68,7 +68,7 @@ def signup():
             return render_template(
                 "signup.html",
                 message="Admins are not allowed to order flights")
-        return redirect("/login")
+        return render_template("login.html")
     return  render_template("signup.html")
 
 
@@ -86,7 +86,7 @@ def login_admin():
             if user and user["password"] == password:
                 session.permanent = True
                 session["ID"] = user["ID"]
-                return redirect("/managers_page")
+                return render_template("managers_page.html")
 
             return render_template(
                 "login_admin.html",
@@ -94,13 +94,13 @@ def login_admin():
             )
     return render_template("login_admin.html")
 @app.route('/', methods=['GET', 'POST'])
-def main():
+def homepage():
     if request.method == 'POST':
         SourceField = request.form.get('SourceField')
         DestinationField = request.form.get('DestinationField')
         TakeOffDate = request.form.get('TakeOffDate')
         PassengersAmount = request.form.get('PassengersAmount')
-        return redirect("/Users_Flight_Table.html")
+        return render_template("Users_Flight_Table.html")
 
     return render_template("homepage.html")
 
@@ -111,19 +111,42 @@ def users_page():
         destination = request.form.get('destination')
         departure_date = request.form.get('departure_date')
         passengers = request.form.get('passengers')
-        return redirect("/Users_Flight_Table.html")
+        return render_template("Users_Flight_Table.html")
 
     return render_template("users_page.html")
 
-@app.route("/orders/cancel", methods=["POST"])
-def cancel_order():
-    order_id = int(request.form.get("order_id"))
+@app.route("/flight-history", methods=['GET','POST'])
+def filter_history():
+    if 'email' not in session:
+        return render_template("login.html")
+    user_email = session.get("email")
+    if request.method == 'POST':
+        status = request.args.get("status")
+        return render_template("users_page.html",orders=get_customer_history(user_email, status))
 
-    return redirect(url_for("my_account"))
+    return render_template("users_page.html",orders=get_customer_history(user_email))
 
-@app.route("/flight-booking", methods=["GET"])
-def filter_orders():
-    status = request.args.get("status")
+@app.route('/manage_order', methods=['GET', 'POST'])
+def manage_order():
+    if request.method == 'POST':
+        order_id = request.form.get('order_id')
+        email = request.form.get('email')
+        order = get_order(order_id,email)
+        flight_time_str = order["TakeOffTime"]
+        format_string = "%Y-%m-%d %H:%M:%S"
+        flight_time = datetime.strptime(flight_time_str, format_string)
+        current_time = datetime.now()
+        time_diff = current_time - flight_time
+        is_cancellable = (time_diff > timedelta(hours=36)) & (order["OrderStatus"] != "Cancelled")
+
+        return render_template("booking_details.html", order=get_order(order_id, email), show_cancel_button=is_cancellable)
+
+    return render_template("manage_order.html")
+
+
+def get_order(order_id, email):
+    return {"Order_ID": "0123", "ClassType" : "business", "NumSeats" : 5, "SourceField": "London", "DestinationField": "Paris", "TakeOffTime": "2000-10-1 14:20:00", "OrderPrice": "200$", "OrderStatus": "active"}
+
 
 if __name__ == '__main__':
     app.run(debug=True)
