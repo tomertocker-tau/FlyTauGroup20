@@ -287,10 +287,32 @@ def get_all_fields(except_for: str = None):
                       where=f"SourceField != {except_for}")
     return select("Routes", ["SourceField"])
 
+def flights_table_with_landing_query(table_query: str, columns: List[str]):
+    q_join = get_select_query(f"({table_query}) AS Ftag_A",
+                              join=("Routes", ["SourceField", "DestinationField"]),
+                              side_join="Outer")
+    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
+                                 columns + ["Ftag_B.TakeOffTime + Ftag_B.FlightDuration AS LandingTime"])
+    return q_landing
 
-
-
-
+def flight_status_query():
+    q_count_available_seats = count_available_seats_query()
+    q_count_by_flight = get_select_query(f"({q_count_available_seats}) AS FC",
+                                         ["FlightID","SUM(AvailableSeats) AS TotalAvailableSeats"],
+                                         group_by=["FlightID"])
+    q_joint = get_select_query("Flights",
+                               ["FlightID", "TakeOffTime"],
+                               join=(f"({q_count_by_flight}) AS FCT", ["FlightID"]),
+                               side_join="Right")
+    return get_select_query(f"({q_joint}) AS FS",
+                            ["FlightID"],
+                            cases={
+                                "FS.IsDeleted==1": "Deleted",
+                                "FS.IsDeleted==0 AND FS.TotalAvailableSeats=0": "Occupied",
+                                "FS.IsDeleted==0 AND FS.TotalAvailableSeats>0 AND FS.TakeOffTime<=NOW()": "Complete",
+                                "ELSE": "Active",
+                                "AS": "FlightStatus"
+                            })
 
 
 def find_flights_by(source_field: str = None,
@@ -362,22 +384,15 @@ def locate_pilots_query():
 
 def attendants_on_land_query(landing_time: datetime):
     q_locate = locate_attendants_query()
-    q_join = get_select_query(f"({q_locate}) AS Ftag_A",
-                              join=("Routes", ["SourceField", "DestinationField"]),
-                              side_join="Outer")
-    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
-                                 ["AttendantID", "DestinationField", "TakeOffTime", "TakeOffTime + FlightDuration AS LandingTime"])
+    q_landing = flights_table_with_landing_query(q_locate,
+                                                 ["AttendantID", "DestinationField", "TakeOffTime"])
     return get_select_query(f"({q_landing}) AS Ftag_C",
                             where=f"LandingTime<{landing_time} OR LandingTime IS NULL")
 
 def pilots_on_land_query(landing_time: datetime):
     q_locate = locate_pilots_query()
-    q_join = get_select_query(f"({q_locate}) AS Ftag_A",
-                              join=("Routes", ["SourceField", "DestinationField"]),
-                              side_join="Outer")
-    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
-                                 ["PilotID", "DestinationField", "TakeOffTime",
-                                  "TakeOffTime + FlightDuration AS LandingTime"])
+    q_landing = flights_table_with_landing_query(q_locate,
+                                                 ["PilotID", "DestinationField", "TakeOffTime"])
     return get_select_query(f"({q_landing}) AS Ftag_C",
                             where=f"LandingTime<{landing_time} OR LandingTime IS NULL")
 
