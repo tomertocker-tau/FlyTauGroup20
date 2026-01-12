@@ -15,7 +15,7 @@ def db_cur():
             database="flytau",
             autocommit=True
         )
-        cursor = mydb.cursor()
+        cursor = mydb.cursor(dictionary=True)
         yield cursor
     except mysql.connector.Error as err:
         raise err
@@ -66,7 +66,7 @@ def get_select_query(table_name: str,
                      join : Tuple[str,List[str]] = None,
                      side_join: str = ""):
     if not columns:
-        query = "SELECT *"
+        query = "SELECT "
         if cases:
             query += " CASE"
             for k, v in cases.items():
@@ -77,6 +77,8 @@ def get_select_query(table_name: str,
             if elsecase:
                 query += f" ELSE {elsecase}"
             query += f"END AS {cases['AS']}"
+        else:
+            query+= "*"
         query += f" FROM {table_name}"
 
     else:
@@ -287,44 +289,75 @@ def get_all_fields(except_for: str = None):
                       where=f"SourceField != {except_for}")
     return select("Routes", ["SourceField"])
 
+def flights_table_with_landing_query(table_query: str, columns: List[str]):
+    q_join = get_select_query(f"({table_query}) AS Ftag_A",
+                              join=("Routes", ["SourceField", "DestinationField"]),
+                              side_join="Outer")
+    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
+                                 columns + ["Ftag_B.TakeOffTime + Ftag_B.FlightDuration AS LandingTime"])
+    return q_landing
 
-
-
-
+def flight_status_query():
+    q_count_available_seats = count_available_seats_query()
+    q_count_by_flight = get_select_query(f"({q_count_available_seats}) AS FC",
+                                         ["FlightID","SUM(AvailableSeats) AS TotalAvailableSeats"],
+                                         group_by=["FlightID"])
+    q_joint = get_select_query("Flights",
+                               ["FlightID", "TakeOffTime"],
+                               join=(f"({q_count_by_flight}) AS FCT", ["FlightID"]),
+                               side_join="Right")
+    return get_select_query(f"({q_joint}) AS FS",
+                            ["FlightID"],
+                            cases={
+                                "FS.IsDeleted==1": "Deleted",
+                                "FS.IsDeleted==0 AND FS.TotalAvailableSeats=0": "Occupied",
+                                "FS.IsDeleted==0 AND FS.TotalAvailableSeats>0 AND FS.TakeOffTime<=NOW()": "Complete",
+                                "ELSE": "Active",
+                                "AS": "FlightStatus"
+                            })
 
 
 def find_flights_by(source_field: str = None,
                     destination_field: str = None,
-                    take_off_date: date = None,
-                    before_date : date = None,
-                    after_date: date = None,
+                    take_off_time: datetime = None,
+                    before_time : datetime = None,
+                    after_time: datetime = None,
+                    is_deleted: bool = False,
                     num_seats: int = None):
     columns = ["Flights.FlightID",
                "Flights.SourceField",
                "Flights.DestinationField",
-               "DATE(Flights.TakeOffTime)"]
-    conditions = ["IsDeleted==0"]
+               "Flights.TakeOffTime"]
+    conditions = []
+    if is_deleted:
+        conditions.append(f"Flights.IsDeleted = {is_deleted}")
     if source_field:
         conditions.append(f"Flights.SourceField=={source_field}")
     if destination_field:
         conditions.append(f"Flights.DestinationField=={destination_field}")
-    if take_off_date:
-        conditions.append(f"DATE(Flights.TakeOffTime)=={take_off_date}")
-    if before_date:
-        conditions.append(f"DATE(Flights.TakeOffTime)<{before_date}")
-    if after_date:
-        conditions.append(f"DATE(Flights.TakeOffTime)>{after_date}")
+    if take_off_time:
+        conditions.append(f"Flights.TakeOffTime=={take_off_time}")
+    if before_time:
+        conditions.append(f"Flights.TakeOffTime<{before_time}")
+    if after_time:
+        conditions.append(f"Flights.TakeOffTime>{after_time}")
     if num_seats:
-        subquery = table_class_prices_query(num_seats)
+        prices_subquery = table_class_prices_query(num_seats)
+        status_subquery = flight_status_query()
+        joint_subquery = get_select_query(f"({status_subquery}) AS FStatus",
+                                          join=(f"({prices_subquery} AS FPrices", ["FlightID"]))
         allquery = get_select_query("Flights",
                                     columns,
-                                    where=" AND ".join(conditions),
-                                    join=(f"({subquery}) AS F",["FlightID"]))
-        return select(f"({allquery}) AS FF",
-                      where=" AND ".join(conditions),
-                      join=("Flights", ["FlightID"]))
+                                    where=" AND ".join(conditions) if len(conditions)>0 else None,
+                                    join=(f"({joint_subquery}) AS F",["FlightID"]),
+                                    side_join="Outer")
+        return select(f"({allquery}) AS FF")
     else:
-        return select("Flights",columns, where=" AND ".join(conditions))
+        status_subquery = flight_status_query()
+        return select("Flights",
+                      columns,
+                      where=" AND ".join(conditions) if len(conditions)>0 else None,
+                      join=(f"({status_subquery}) AS FStatus",["FlightID"]))
 
 def locate_attendants_query():
     q_attendants = get_select_query("Flights",
@@ -362,22 +395,15 @@ def locate_pilots_query():
 
 def attendants_on_land_query(landing_time: datetime):
     q_locate = locate_attendants_query()
-    q_join = get_select_query(f"({q_locate}) AS Ftag_A",
-                              join=("Routes", ["SourceField", "DestinationField"]),
-                              side_join="Outer")
-    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
-                                 ["AttendantID", "DestinationField", "TakeOffTime", "TakeOffTime + FlightDuration AS LandingTime"])
+    q_landing = flights_table_with_landing_query(q_locate,
+                                                 ["AttendantID", "DestinationField", "TakeOffTime"])
     return get_select_query(f"({q_landing}) AS Ftag_C",
                             where=f"LandingTime<{landing_time} OR LandingTime IS NULL")
 
 def pilots_on_land_query(landing_time: datetime):
     q_locate = locate_pilots_query()
-    q_join = get_select_query(f"({q_locate}) AS Ftag_A",
-                              join=("Routes", ["SourceField", "DestinationField"]),
-                              side_join="Outer")
-    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
-                                 ["PilotID", "DestinationField", "TakeOffTime",
-                                  "TakeOffTime + FlightDuration AS LandingTime"])
+    q_landing = flights_table_with_landing_query(q_locate,
+                                                 ["PilotID", "DestinationField", "TakeOffTime"])
     return get_select_query(f"({q_landing}) AS Ftag_C",
                             where=f"LandingTime<{landing_time} OR LandingTime IS NULL")
 
@@ -432,11 +458,16 @@ def get_customer_history(email: str, status: str = None):
     :return: OrderID, ClassType, NumSeats, SourceField, DestinationField, TakeOffTime, OrderPrice, Status
     '''
     q_seats = occupied_seats_by_flight_and_class_query()
-    status_condition = f" AND CustomerOrders.Status={status}" if status else ""
+    q_orders_guests = get_select_query("GuestOrders",
+                                       where=f"GuestOrders.Email={email}")
+    q_orders_customers = get_select_query("CustomerOrders",
+                                          where=f"CustomerOrders.Email={email}")
+    q_orders_union = f"(({q_orders_guests}) UNION ({q_orders_customers})) AS UnionOrders"
+    status_condition = f" AND UnionOrders.Status={status}" if status else ""
     q_with_client = get_select_query(q_seats,
                                      ["OrderID", "FlightID", "ClassType"],
-                                     join=("CustomerOrders", ["OrderID", "FlightID", "ClassType"]),
-                                     where=f"CustomerOrders.Email={email}"+status_condition)
+                                     join=(q_orders_union, ["OrderID", "FlightID", "ClassType"]),
+                                     where=f"UnionOrders.Email={email}"+status_condition)
     q_count_seats = get_select_query(f"({q_with_client}) AS WithClient",
                                      ["OrderID", "FlightID", "ClassType", "OrderStatus", "COUNT(OrderID) AS NumSeats"],
                                      group_by=["OrderID"],
@@ -464,3 +495,17 @@ def delete_order(order_id: Union[str, int], is_signed_up: bool = False):
         update("GuestOrders",
                {"OrderStatus":"Deleted"},
                where=f"GuestOrders.OrderID={order_id}")
+
+def get_order(order_id:Union[str, int], email: str):
+    '''
+
+    :param order_id:
+    :param email:
+    :return: OrderID, ClassType, NumSeats SourceField,
+            DestinationField, TakeOffTime, OrderPrice, OrderStatus
+    '''
+    for order in get_customer_history(email):
+        if order["OrderID"] == order_id:
+            return order
+    return {}
+
