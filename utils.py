@@ -274,6 +274,17 @@ def table_class_prices_query(atleast: int = 1):
     return t_cols
 
 
+def get_all_fields(except_for: str = None):
+    if except_for:
+        return select("Routes",
+                      ["SourceField"],
+                      where=f"SourceField != {except_for}")
+    return select("Routes", ["SourceField"])
+
+
+
+
+
 
 
 def find_flights_by(source_field: str = None,
