@@ -317,36 +317,45 @@ def flight_status_query():
 
 def find_flights_by(source_field: str = None,
                     destination_field: str = None,
-                    take_off_date: date = None,
-                    before_date : date = None,
-                    after_date: date = None,
+                    take_off_time: datetime = None,
+                    before_time : datetime = None,
+                    after_time: datetime = None,
+                    is_deleted: bool = False,
                     num_seats: int = None):
     columns = ["Flights.FlightID",
                "Flights.SourceField",
                "Flights.DestinationField",
-               "DATE(Flights.TakeOffTime)"]
-    conditions = ["IsDeleted==0"]
+               "Flights.TakeOffTime"]
+    conditions = []
+    if is_deleted:
+        conditions.append(f"Flights.IsDeleted = {is_deleted}")
     if source_field:
         conditions.append(f"Flights.SourceField=={source_field}")
     if destination_field:
         conditions.append(f"Flights.DestinationField=={destination_field}")
-    if take_off_date:
-        conditions.append(f"DATE(Flights.TakeOffTime)=={take_off_date}")
-    if before_date:
-        conditions.append(f"DATE(Flights.TakeOffTime)<{before_date}")
-    if after_date:
-        conditions.append(f"DATE(Flights.TakeOffTime)>{after_date}")
+    if take_off_time:
+        conditions.append(f"Flights.TakeOffTime=={take_off_time}")
+    if before_time:
+        conditions.append(f"Flights.TakeOffTime<{before_time}")
+    if after_time:
+        conditions.append(f"Flights.TakeOffTime>{after_time}")
     if num_seats:
-        subquery = table_class_prices_query(num_seats)
+        prices_subquery = table_class_prices_query(num_seats)
+        status_subquery = flight_status_query()
+        joint_subquery = get_select_query(f"({status_subquery}) AS FStatus",
+                                          join=(f"({prices_subquery} AS FPrices", ["FlightID"]))
         allquery = get_select_query("Flights",
                                     columns,
-                                    where=" AND ".join(conditions),
-                                    join=(f"({subquery}) AS F",["FlightID"]))
-        return select(f"({allquery}) AS FF",
-                      where=" AND ".join(conditions),
-                      join=("Flights", ["FlightID"]))
+                                    where=" AND ".join(conditions) if len(conditions)>0 else None,
+                                    join=(f"({joint_subquery}) AS F",["FlightID"]),
+                                    side_join="Outer")
+        return select(f"({allquery}) AS FF")
     else:
-        return select("Flights",columns, where=" AND ".join(conditions))
+        status_subquery = flight_status_query()
+        return select("Flights",
+                      columns,
+                      where=" AND ".join(conditions) if len(conditions)>0 else None,
+                      join=(f"({status_subquery}) AS FStatus",["FlightID"]))
 
 def locate_attendants_query():
     q_attendants = get_select_query("Flights",
