@@ -34,6 +34,16 @@ def delete(table_name: str, where: str):
     with db_cur() as cursor:
         cursor.execute(f"DELETE FROM {table_name} WHERE {where}")
 
+def update(table_name: str, data: Dict[str,str], where: str = None):
+    with db_cur() as cursor:
+        new_values_str_line = ', '.join(['='.join([k,v]) for k,v in data.items()])
+        if where:
+            cursor.execute(f"UPDATE {table_name} "
+                           f"SET {new_values_str_line} "
+                           f"WHERE {where}")
+        else:
+            cursor.execute(f"UPDATE {table_name} SET {new_values_str_line}")
+
 def select(table_name: str,
            columns: List[str] = None,
            where: str =None,
