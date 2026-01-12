@@ -15,7 +15,7 @@ def db_cur():
             database="flytau",
             autocommit=True
         )
-        cursor = mydb.cursor()
+        cursor = mydb.cursor(dictionary=True)
         yield cursor
     except mysql.connector.Error as err:
         raise err
@@ -66,7 +66,7 @@ def get_select_query(table_name: str,
                      join : Tuple[str,List[str]] = None,
                      side_join: str = ""):
     if not columns:
-        query = "SELECT *"
+        query = "SELECT "
         if cases:
             query += " CASE"
             for k, v in cases.items():
@@ -77,6 +77,8 @@ def get_select_query(table_name: str,
             if elsecase:
                 query += f" ELSE {elsecase}"
             query += f"END AS {cases['AS']}"
+        else:
+            query+= "*"
         query += f" FROM {table_name}"
 
     else:
