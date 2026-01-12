@@ -442,8 +442,25 @@ def get_customer_history(email: str, status: str = None):
                                      group_by=["OrderID"],
                                      join=("FlightPrices",["FlightID","ClassType"]))
     q_orders = get_select_query(f"({q_count_seats}) AS CountSeats",
-                                ["OrderID", "FlightID", "ClassType","NumSeats", "NumSeats*Price AS OrderPrice", "OrderStatus"],
+                                ["OrderID", "FlightID", "ClassType","NumSeats", "OrderStatus"],
+                                cases={
+                                    "CountSeats.OrderStatus='Deleted'": "NumSeats*Price",
+                                    "ELSE": "NumSeats*Price*0.05",
+                                    "AS": "OrderPrice"
+                                },
                                 join=("Flights", ["FlightID"]))
     return select(f"({q_orders}) AS O",
                   ["OrderID", "ClassType", "NumSeats", "SourceField","DestinationField","TakeOffTime", "OrderPrice", "OrderStatus"])
 
+
+
+
+def delete_order(order_id: Union[str, int], is_signed_up: bool = False):
+    if is_signed_up:
+        update("CustomerOrders",
+               {"OrderStatus":"Deleted"},
+               where=f"CustomerOrders.OrderID={order_id}")
+    else:
+        update("GuestOrders",
+               {"OrderStatus":"Deleted"},
+               where=f"GuestOrders.OrderID={order_id}")
