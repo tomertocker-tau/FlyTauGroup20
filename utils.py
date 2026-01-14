@@ -163,7 +163,7 @@ def find_flights_by(flight_id:Union[str,int] = None,
                     take_off_time: datetime = None,
                     before_time : datetime = None,
                     after_time: datetime = None,
-                    is_deleted: bool = False,
+                    status: str = None,
                     num_seats: int = None):
     columns = ["Flights.FlightID",
                "Flights.SourceField",
@@ -172,8 +172,8 @@ def find_flights_by(flight_id:Union[str,int] = None,
     conditions = []
     if flight_id:
         conditions.append(f"Flights.FlightID = {flight_id}")
-    if is_deleted:
-        conditions.append(f"Flights.IsDeleted = {is_deleted}")
+    if status:
+        conditions.append(f"F.Status = {status}")
     if source_field:
         conditions.append(f"Flights.SourceField LIKE '%{source_field}%'")
     if destination_field:
@@ -200,7 +200,7 @@ def find_flights_by(flight_id:Union[str,int] = None,
         return select("Flights",
                       columns,
                       where=" AND ".join(conditions) if len(conditions)>0 else None,
-                      join=(f"({status_subquery}) AS FStatus",["FlightID"]))
+                      join=(f"({status_subquery}) AS F",["FlightID"]))
 
 def get_available_pilots(on_time: datetime, required_qualify: bool = False):
     if required_qualify:
