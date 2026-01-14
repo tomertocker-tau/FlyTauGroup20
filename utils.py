@@ -318,7 +318,8 @@ def flight_status_query():
                             })
 
 
-def find_flights_by(source_field: str = None,
+def find_flights_by(flight_id:Union[str,int] = None,
+                    source_field: str = None,
                     destination_field: str = None,
                     take_off_time: datetime = None,
                     before_time : datetime = None,
@@ -330,6 +331,8 @@ def find_flights_by(source_field: str = None,
                "Flights.DestinationField",
                "Flights.TakeOffTime"]
     conditions = []
+    if flight_id:
+        conditions.append(f"Flights.FlightID = {flight_id}")
     if is_deleted:
         conditions.append(f"Flights.IsDeleted = {is_deleted}")
     if source_field:
