@@ -321,4 +321,40 @@ def customer_exists(email: str):
                     where=f"Customers.Email={email}")
     return len(q_find) > 0
 
+def delete_flight(flight_id: Union[str, int]):
+    update("Flights", {"IsDeleted": "1"},
+           where=f"Flights.FlightID={flight_id}")
 
+def get_flight_category(source_field: str, destination_field: str):
+    ans = select("Routes", ["FlightDuration"],
+                 where=f"SourceField={source_field} AND DestinationField={destination_field}"
+                 )
+    if len(ans) == 0:
+        return
+    if ans[0]["FlightDuration"] > 6:
+        return "Long"
+    return "Short"
+
+def find_available_plains(take_off_time: datetime,
+                          landing_time: datetime,
+                          source_field: str,
+                          is_long_flight: bool):
+    num_classes = 2 if is_long_flight else 1
+    q_count_classes_plains = get_select_query("Class",
+                                                ["Class.PlainID", "SUM(Class.PlainID) AS NumClasses"],
+                                              group_by=["Class.PlainID"])
+    q_landing = flights_table_with_landing_query("Flights",
+                                                 ["FlightID", "PlainID", "TakeOffTime", "DestinationField"])
+    q_joint = get_select_query(f"({q_count_classes_plains}) AS C",
+                               join=(f"({q_landing}) AS Landing", ["PlainID"]),
+                               side_join="Left")
+    ans = select(f"({q_joint}) AS J",
+                 ["J.PlainID", "J.NumClasses"],
+                 where=f"(J.TakeOffTime>{landing_time} "
+                       f"OR J.LandingTime<{take_off_time} "
+                       f"OR J.TakeOffTime IS NULL "
+                       f"OR J.LandingTime IS NULL) "
+                       f"AND J.NumClasses>={num_classes}"
+                       f"AND (J.DestinationField={source_field} "
+                       f"OR J.DestinationField IS NULL)")
+    return ans
