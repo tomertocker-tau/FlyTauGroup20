@@ -233,9 +233,9 @@ def count_occupied_seats_query():
                   group_by=["FlightID", "ClassType", "PlainID"])
 
 def get_flights_capacity_query():
-    flights_query = get_select_query("FlightPrices",
-                                     ["FlightID", "PlainID", "ClassType"],
-                                     join=("Class", ["PlainID", "ClassType"]))
+    flights_query = get_select_query("Flights",
+                                     ["FlightID", "PlainID"],
+                                     join=("Class", ["PlainID"]))
     return get_select_query(f"({flights_query}) AS FP",
                             ["FlightID","PlainID", "ClassType", "NumberRows*NumberCols AS Capacity"])
 
@@ -265,7 +265,7 @@ def available_class_prices_query(atleast: int  = 1):
     return prices_by_class
 
 def table_class_prices_query(atleast: int = 1):
-    classes = select("Class", ["ClassType"], group_by=["ClassType"])[0]
+    classes = select("Class", ["ClassType"], group_by=["ClassType"])
     t_cols = ""
     price_seats = available_class_prices_query(atleast)
     for i, cls in enumerate(classes):
