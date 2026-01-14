@@ -168,7 +168,8 @@ def find_flights_by(flight_id:Union[str,int] = None,
     columns = ["Flights.FlightID",
                "Flights.SourceField",
                "Flights.DestinationField",
-               "Flights.TakeOffTime"]
+               "Flights.TakeOffTime",
+               "Flights.PlainID"]
     conditions = []
     if flight_id:
         conditions.append(f"Flights.FlightID = {flight_id}")
