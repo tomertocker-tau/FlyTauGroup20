@@ -95,15 +95,16 @@ def get_select_query(table_name: str,
             query += f"END AS {cases['AS']}"
         query += f" FROM {table_name}"
     if join:
-        real_table_name = " ".split(table_name)[-1]
+        real_table_name1 = table_name.split()[-1]
+        real_table_name2 = join[0].split()[-1]
         if side_join:
             pass
         else:
             side_join = ""
 
-        query += f"{side_join} JOIN {join[0]} ON {join[0]}.{join[1]} = {real_table_name}.{join[1][0]}"
+        query += f"{side_join} JOIN {real_table_name2} ON {real_table_name2}.{join[1][0]} = {real_table_name1}.{join[1][0]}"
         for column in join[1][1:]:
-            query += f" AND {real_table_name} {column} = {join[0]}.{column}"
+            query += f" AND {real_table_name2}.{column} = {real_table_name1}.{column}"
     if where:
         query += f" WHERE {where}"
     if group_by:
