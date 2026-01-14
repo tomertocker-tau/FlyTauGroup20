@@ -4,6 +4,11 @@ from str_queries import *
 from sql_base import insert, update
 
 def check_if_admin(email: str):
+    '''
+
+    :param email: an email address
+    :return: (True/False) if email is of an admin
+    '''
     find = select("Admins",
                   ["Admins.Email"],
                   where=f"Admins.Email={email}")
