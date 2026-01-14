@@ -8,67 +8,6 @@ def check_if_admin(email: str):
                   where=f"Admins.Email={email}")
     return len(find)>0
 
-def get_future_flights(include_deleted: bool = False):
-    query = get_select_query("Flights",
-                             [
-                                 "Flights.FlightID",
-                                 "Flights.SourceField",
-                                 "Flights.DestinationField",
-                                 "Flights.TakeOffTime",
-                                 "Flights.IsDeleted"
-                             ],
-                             join=("FlightPrices", ["FlightID"]))
-
-    if include_deleted:
-        return select(f"({query}) AS F",
-                      [
-                          "F.FlightID",
-                          "F.SourceField",
-                          "F.DestinationField",
-                          "F.TakeOffTime"
-                      ],
-                      where="F.TakeOffTime > NOW()")
-    else:
-        return select(f"({query}) AS F",
-                      [
-                          "F.FlightID",
-                          "F.SourceField",
-                          "F.DestinationField",
-                          "F.TakeOffTime"
-                      ],
-                      where="F.TakeOffTime > NOW() AND F.IsDeleted==0")
-
-def get_past_flights(include_deleted: bool = False):
-    query = get_select_query("Flights",
-                             [
-                                 "Flights.FlightID",
-                                 "Flights.SourceField",
-                                 "Flights.DestinationField",
-                                 "Flights.TakeOffTime",
-                                 "Flights.IsDeleted"
-                             ],
-                             join=("FlightPrices", ["FlightID"]))
-
-    if include_deleted:
-        return select(f"({query}) AS F",
-                      [
-                          "F.FlightID",
-                          "F.SourceField",
-                          "F.DestinationField",
-                          "F.TakeOffTime"
-                      ],
-                      where="F.TakeOffTime <= NOW()")
-    else:
-        return select(f"({query}) AS F",
-                      [
-                          "F.FlightID",
-                          "F.SourceField",
-                          "F.DestinationField",
-                          "F.TakeOffTime"
-                      ],
-                      where="F.TakeOffTime <= NOW() AND F.IsDeleted==0")
-
-
 
 def insert_customer_details(First_name : str,
                             Last_name: str,
