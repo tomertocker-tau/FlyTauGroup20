@@ -1,119 +1,6 @@
-from contextlib import contextmanager
-import mysql.connector
 from datetime import datetime, date, time
 from typing import Union, Dict, List, Tuple
-
-@contextmanager
-def db_cur():
-    mydb = None
-    cursor = None
-    try:
-        mydb = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="root",
-            database="flytau",
-            autocommit=True
-        )
-        cursor = mydb.cursor(dictionary=True)
-        yield cursor
-    except mysql.connector.Error as err:
-        raise err
-    finally:
-        if cursor:
-            cursor.close()
-        if mydb:
-            mydb.close()
-
-def insert(table_name: str, data: Dict[str,str]):
-    with db_cur() as cursor:
-        cursor.execute(f"INSERT INTO {table_name}({', '.join(data.keys())}) "
-                     f"VALUES({', '.join(data.keys())})")
-
-def delete(table_name: str, where: str):
-    with db_cur() as cursor:
-        cursor.execute(f"DELETE FROM {table_name} WHERE {where}")
-
-def update(table_name: str, data: Dict[str,str], where: str = None):
-    with db_cur() as cursor:
-        new_values_str_line = ', '.join(['='.join([k,v]) for k,v in data.items()])
-        if where:
-            cursor.execute(f"UPDATE {table_name} "
-                           f"SET {new_values_str_line} "
-                           f"WHERE {where}")
-        else:
-            cursor.execute(f"UPDATE {table_name} SET {new_values_str_line}")
-
-def select(table_name: str,
-           columns: List[str] = None,
-           where: str =None,
-           group_by:List[str]=None,
-           having: str = None,
-           cases: Dict[str,str]=None,
-           join: Tuple[str, List[str]]=None,
-           side_join: str=None):
-    with db_cur() as cursor:
-        query = get_select_query(table_name, columns, where, group_by, having, cases, join, side_join)
-        cursor.execute(query)
-    return cursor.fetchall()
-
-def get_select_query(table_name: str,
-                     columns: List[str] = None,
-                     where: str =None,
-                     group_by:List[str]=None,
-                     having: str=None,
-                     cases: Dict[str,str]=None,
-                     join : Tuple[str,List[str]] = None,
-                     side_join: str = ""):
-    if not columns:
-        query = "SELECT "
-        if cases:
-            query += " CASE"
-            for k, v in cases.items():
-                if k in ["ELSE","AS"]:
-                    continue
-                query += f" WHEN {k} THEN {v}"
-            elsecase = cases.get("ELSE")
-            if elsecase:
-                query += f" ELSE {elsecase}"
-            query += f"END AS {cases['AS']}"
-        else:
-            query+= "*"
-        query += f" FROM {table_name}"
-
-    else:
-        query = f"SELECT {', '.join(columns)}"
-        if cases:
-            query += " CASE"
-            for k, v in cases.items():
-                if k in ["ELSE","AS"]:
-                    continue
-                query += f" WHEN {k} THEN {v}"
-            elsecase = cases.get("ELSE")
-            if elsecase:
-                query += f" ELSE {elsecase}"
-            query += f"END AS {cases['AS']}"
-        query += f" FROM {table_name}"
-    if join:
-        real_table_name1 = table_name.split()[-1]
-        real_table_name2 = join[0].split()[-1]
-        if side_join:
-            pass
-        else:
-            side_join = ""
-
-        query += f"{side_join} JOIN {real_table_name2} ON {real_table_name2}.{join[1][0]} = {real_table_name1}.{join[1][0]}"
-        for column in join[1][1:]:
-            query += f" AND {real_table_name2}.{column} = {real_table_name1}.{column}"
-    if where:
-        query += f" WHERE {where}"
-    if group_by:
-        query += f" GROUP BY {','.join(group_by)}"
-        if having:
-            query += f" HAVING {having}"
-    return query
-
-
+from str_queries import *
 
 def check_if_admin(email: str):
     find = select("Admins",
@@ -216,72 +103,6 @@ def insert_phones(email: str, phones: List[str], is_signed_up: bool = True):
         else:
             insert(table_name, {"Email": email, "Phone": phone})
 
-def occupied_seats_by_flight_and_class_query():
-    customer_query = get_select_query("CustomerOrders",
-                                      ["OrderID", "FlightID", "ClassType", "PlainID"],
-                                      join=("SelectedSeatsCustomerOrders", ["OrderID"]))
-    guests_query = get_select_query("GuestOrders",
-                                    ["OrderID", "FlightID", "ClassType", "PlainID"],
-                                    join=("SelectedSeatsGuestOrders", ["OrderID"]))
-    union_query = f"(({customer_query}) UNION ({guests_query})) AS S"
-    return union_query
-
-
-def count_occupied_seats_query():
-    union_query = occupied_seats_by_flight_and_class_query()
-    return get_select_query(union_query, ["S.FlightID", "S.ClassType", "S.PlainID", "COUNT(S.OrderID) AS OccupiedSeats"],
-                  group_by=["FlightID", "ClassType", "PlainID"])
-
-def get_flights_capacity_query():
-    flights_query = get_select_query("Flights",
-                                     ["FlightID", "PlainID"],
-                                     join=("Class", ["PlainID"]))
-    return get_select_query(f"({flights_query}) AS FP",
-                            ["FlightID","PlainID", "ClassType", "NumberRows*NumberCols AS Capacity"])
-
-def count_available_seats_query():
-    occupied_query = count_occupied_seats_query()
-    capacity_query = get_flights_capacity_query()
-    joint_query = get_select_query(f"({occupied_query}) AS OS",
-                                   join=(f"({capacity_query}) AS CS", ["FlightID","PlainID", "ClassType"]),
-                                   side_join="Right")
-    return get_select_query(f"({joint_query}) AS Joint",
-                            ["FlightID","PlainID", "ClassType"],
-                            cases={
-                                "Joint.OccupiedSeats IS NULL": "Joint.Capacity",
-                                "ELSE": "Joint.Capacity - Joint.OccupiedSeats",
-                                "AS": "AvailableSeats"
-                            })
-
-def available_class_prices_query(atleast: int  = 1):
-
-    count_seats = count_available_seats_query()
-    if atleast < 1:
-        atleast = 1
-    prices_by_class = get_select_query(f"({count_seats}) AS CAS",
-                                       ["FlightID","ClassType"],
-                                       where=f"AvailableSeats > {atleast}",
-                                       join=("FlightPrices", ["FlightID", "ClassType"]))
-    return prices_by_class
-
-def table_class_prices_query(atleast: int = 1):
-    classes = select("Class", ["ClassType"], group_by=["ClassType"])
-    t_cols = ""
-    price_seats = available_class_prices_query(atleast)
-    for i, cls in enumerate(classes):
-
-        tmp= get_select_query(f"({price_seats}) AS ACP{cls}",
-                              ["FlightID", f"Price AS {cls}_price"],
-                              where=f"ACP{cls}.AvailableSeats > 0 AND ACP{cls}.ClassType = {cls}")
-        if i == 0:
-            t_cols = tmp
-        else:
-            t_cols = get_select_query(f"({price_seats}) AS PBF{cls}",
-                                      ["Flight_ID"]+[f"{classes[j]}_price" for j in range(i)],
-                                      join=(f"PBF{cls}", ["Flight_ID"]),
-                                      side_join="Outer")
-    return t_cols
-
 
 def get_all_fields(except_for: str = None):
     if except_for:
@@ -289,33 +110,6 @@ def get_all_fields(except_for: str = None):
                       ["SourceField"],
                       where=f"SourceField != {except_for}")
     return select("Routes", ["SourceField"])
-
-def flights_table_with_landing_query(table_query: str, columns: List[str]):
-    q_join = get_select_query(f"({table_query}) AS Ftag_A",
-                              join=("Routes", ["SourceField", "DestinationField"]),
-                              side_join="Outer")
-    q_landing = get_select_query(f"({q_join}) AS Ftag_B",
-                                 columns + ["Ftag_B.TakeOffTime + Ftag_B.FlightDuration AS LandingTime"])
-    return q_landing
-
-def flight_status_query():
-    q_count_available_seats = count_available_seats_query()
-    q_count_by_flight = get_select_query(f"({q_count_available_seats}) AS FC",
-                                         ["FlightID","SUM(AvailableSeats) AS TotalAvailableSeats"],
-                                         group_by=["FlightID"])
-    q_joint = get_select_query("Flights",
-                               ["FlightID", "TakeOffTime"],
-                               join=(f"({q_count_by_flight}) AS FCT", ["FlightID"]),
-                               side_join="Right")
-    return get_select_query(f"({q_joint}) AS FS",
-                            ["FlightID"],
-                            cases={
-                                "FS.IsDeleted==1": "Deleted",
-                                "FS.IsDeleted==0 AND FS.TotalAvailableSeats=0": "Occupied",
-                                "FS.IsDeleted==0 AND FS.TotalAvailableSeats>0 AND FS.TakeOffTime<=NOW()": "Complete",
-                                "ELSE": "Active",
-                                "AS": "FlightStatus"
-                            })
 
 
 def find_flights_by(flight_id:Union[str,int] = None,
@@ -362,54 +156,6 @@ def find_flights_by(flight_id:Union[str,int] = None,
                       columns,
                       where=" AND ".join(conditions) if len(conditions)>0 else None,
                       join=(f"({status_subquery}) AS FStatus",["FlightID"]))
-
-def locate_attendants_query():
-    q_attendants = get_select_query("Flights",
-                                    ["FlightID", "SourceField", "DestinationField", "TakeOffTime"],
-                                    join=("WorkingFlightAttendants", ["FlightID"]))
-    q_when_attendants = get_select_query(f"({q_attendants}) AS FA",
-                                         ["AttendantID", "MAX(TakeOffTime) AS TakeOffTime"],
-                                         group_by=["AttendantID"])
-    q_where_attendants = get_select_query(f"({q_attendants}) AS FB",
-                                          ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"],
-                                          join=(f"({q_when_attendants}) AS FC", ["FlightID"]))
-    q_all_attendants = get_select_query(f"({q_where_attendants}) AS F",
-                                        ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"],
-                                        join=("FlightAttendants", ["AttendantID"]),
-                                        side_join="Right")
-    return get_select_query(f"({q_all_attendants}) AS Ftag",
-                            ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"])
-
-def locate_pilots_query():
-    q_pilots = get_select_query("Flights",
-                                    ["FlightID", "SourceField", "DestinationField", "TakeOffTime"],
-                                    join=("WorkingPilots", ["FlightID"]))
-    q_when_pilots = get_select_query(f"({q_pilots}) AS FA",
-                                         ["PilotID", "MAX(TakeOffTime) AS TakeOffTime"],
-                                         group_by=["PilotID"])
-    q_where_pilots = get_select_query(f"({q_pilots}) AS FB",
-                                          ["PilotID", "SourceField", "DestinationField", "TakeOffTime"],
-                                          join=(f"({q_when_pilots}) AS FC", ["FlightID"]))
-    q_all_pilots = get_select_query(f"({q_where_pilots}) AS F",
-                                        ["PilotID", "SourceField", "DestinationField", "TakeOffTime"],
-                                        join=("Pilots", ["PilotID"]),
-                                        side_join="Right")
-    return get_select_query(f"({q_all_pilots}) AS Ftag",
-                            ["PilotID", "SourceField", "DestinationField", "TakeOffTime"])
-
-def attendants_on_land_query(landing_time: datetime):
-    q_locate = locate_attendants_query()
-    q_landing = flights_table_with_landing_query(q_locate,
-                                                 ["AttendantID", "DestinationField", "TakeOffTime"])
-    return get_select_query(f"({q_landing}) AS Ftag_C",
-                            where=f"LandingTime<{landing_time} OR LandingTime IS NULL")
-
-def pilots_on_land_query(landing_time: datetime):
-    q_locate = locate_pilots_query()
-    q_landing = flights_table_with_landing_query(q_locate,
-                                                 ["PilotID", "DestinationField", "TakeOffTime"])
-    return get_select_query(f"({q_landing}) AS Ftag_C",
-                            where=f"LandingTime<{landing_time} OR LandingTime IS NULL")
 
 def get_available_pilots(on_time: datetime, required_qualify: bool = False):
     if required_qualify:
@@ -512,8 +258,6 @@ def get_order(order_id:Union[str, int], email: str):
         if order["OrderID"] == order_id:
             return order
     return {}
-
-
 
 def check_login(email: str, password: str, is_admin: bool = False):
     if is_admin:
