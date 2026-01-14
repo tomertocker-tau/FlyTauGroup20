@@ -48,6 +48,106 @@ def insert_phones(email: str, phones: List[str], is_signed_up: bool = True):
         else:
             insert(table_name, {"Email": email, "Phone": phone})
 
+def insert_order(order_id: Union[str, int],
+                 email : str,
+                 plain_id: Union[str, int],
+                 class_type: str,
+                 flight_id: Union[str, int],
+                 is_signed_up: bool = True):
+    insert("CustomerOrders" if is_signed_up else "GuestOrders",
+           {
+               "OrderId": order_id,
+               "Email": email,
+               "PlainID": plain_id,
+               "ClassType": class_type,
+               "FlightID": flight_id,
+               "OrderStatus": "Done",
+               "OrderDate": datetime.today()
+           })
+
+def insert_order_seats(order_seats: List[Dict[str, Union[str, int]]], is_signed_up: bool = True):
+    for order_seat in order_seats:
+        insert("CustomerOrderSeats" if is_signed_up else "GuestOrderSeats", order_seat)
+
+def insert_plain(plain_id: Union[str, int],
+                 manufacturer: str,
+                 size: str,
+                 purchase_date: date):
+    insert("Plains",
+           {
+               "PlainID": plain_id,
+               "Manufacturer": manufacturer,
+               "Size": size,
+               "PurchaseDate": purchase_date
+           })
+
+def insert_classes(classes: List[Dict[str, Union[str, int]]]):
+    for cls in classes:
+        insert("Class", cls)
+
+def insert_flight(flight_id: Union[str, int],
+                  plain_id: Union[str, int],
+                  take_off_time: datetime,
+                  source_field: str,
+                  destination_field: str):
+    insert("Flights",
+           {
+               "FlightID": flight_id,
+               "PlainID": plain_id,
+               "SourceField": source_field,
+               "DestinationField": destination_field,
+               "TakeOffTime": take_off_time,
+               "IsDeleted": "0"
+           })
+
+def insert_flight_prices(prices: List[Dict[str, Union[str, int]]]):
+    for price in prices:
+        insert("FlightPrices", price)
+
+def insert_attendant(attendant_id: Union[str, int],
+                     first_name: str,
+                     last_name: str,
+                     phone: str,
+                     city: str,
+                     street: str,
+                     home_number: int,
+                     job_start_day: date,
+                     qualified4long_flights: int = 0):
+    insert("FlightAttendants",
+           {
+               "AttendantId": attendant_id,
+               "FirstName": first_name,
+               "LastName": last_name,
+               "Phone": phone,
+               "City": city,
+               "Street": street,
+               "HomeNumber": home_number,
+               "JobStartDay": job_start_day,
+               "Qualified4LongFlights": qualified4long_flights
+           })
+
+def insert_pilot(pilot_id: Union[str, int],
+                 first_name: str,
+                 last_name: str,
+                 phone: str,
+                 city: str,
+                 street: str,
+                 home_number: int,
+                 job_start_day: date,
+                 qualified4long_flights: int = 0):
+    insert("Pilots",
+           {
+               "PilotId": pilot_id,
+               "FirstName": first_name,
+               "LastName": last_name,
+               "Phone": phone,
+               "City": city,
+               "Street": street,
+               "HomeNumber": home_number,
+               "JobStartDay": job_start_day,
+               "Qualified4LongFlights": qualified4long_flights
+           })
+
 
 def get_all_fields(except_for: str = None):
     if except_for:
