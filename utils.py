@@ -271,11 +271,12 @@ def get_customer_history(email: str, status: str = None):
     q_orders = get_select_query(f"({q_count_seats}) AS CountSeats",
                                 ["OrderID", "FlightID", "ClassType","NumSeats", "OrderStatus"],
                                 cases={
-                                    "CountSeats.OrderStatus='Deleted'": "NumSeats*Price",
-                                    "ELSE": "NumSeats*Price*0.05",
+                                    "CountSeats.OrderStatus='Deleted'": "NumSeats*Price*0.05",
+                                    "CountSeats.OrderStatus!='Deleted' AND FlightStatus.FlightStatus='Deleted'": "0",
+                                    "ELSE": "NumSeats*Price",
                                     "AS": "OrderPrice"
                                 },
-                                join=("Flights", ["FlightID"]))
+                                join=(f"({flight_status_query()}) AS FlightStatus", ["FlightID"]))
     return select(f"({q_orders}) AS O",
                   ["OrderID", "ClassType", "NumSeats", "SourceField","DestinationField","TakeOffTime", "OrderPrice", "OrderStatus"])
 
