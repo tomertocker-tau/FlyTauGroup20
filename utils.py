@@ -306,13 +306,14 @@ def get_order(order_id:Union[str, int], email: str):
             return order
     return {}
 
-def check_login(email: str, password: str, is_admin: bool = False):
-    if is_admin:
-        q_find = select("Managers",
-                        where=f"Managers.Email={email} AND Managers.Password={password}")
-        return len(q_find) > 0
+def check_login(email: str, password: str):
     q_find = select("Customers",
                     where=f"Customers.Email={email} AND Customers.Password={password}")
+    return len(q_find) > 0
+
+def check_admin_login(admin_id: Union[str, int], password: str):
+    q_find = select("Managers",
+                    where=f"Managers.ManagerID={admin_id} AND Managers.Password={password}")
     return len(q_find) > 0
 
 def customer_exists(email: str):
