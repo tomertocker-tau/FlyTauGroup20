@@ -1,6 +1,7 @@
 from datetime import datetime, date, time
 from typing import Union, Dict, List, Tuple
 from str_queries import *
+from sql_base import insert, update
 
 def check_if_admin(email: str):
     find = select("Admins",
