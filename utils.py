@@ -333,9 +333,9 @@ def find_flights_by(source_field: str = None,
     if is_deleted:
         conditions.append(f"Flights.IsDeleted = {is_deleted}")
     if source_field:
-        conditions.append(f"Flights.SourceField=={source_field}")
+        conditions.append(f"Flights.SourceField LIKE '%{source_field}%'")
     if destination_field:
-        conditions.append(f"Flights.DestinationField=={destination_field}")
+        conditions.append(f"Flights.DestinationField LIKE '%{destination_field}%'")
     if take_off_time:
         conditions.append(f"Flights.TakeOffTime=={take_off_time}")
     if before_time:
