@@ -79,7 +79,6 @@ def signup():
         return render_template("login.html")
     return  render_template("signup.html")
 
-
 @app.route('/login_admin', methods=['GET', 'POST'])
 def login_admin():
     if request.method == 'POST':
