@@ -14,7 +14,7 @@ def db_cur():
             database="flytau",
             autocommit=True
         )
-        cursor = mydb.cursor(dictionary=True)
+        cursor = mydb.cursor(dictionary=True, buffered=True)
         yield cursor
     except mysql.connector.Error as err:
         raise err
@@ -75,7 +75,7 @@ def get_select_query(table_name: str,
             elsecase = cases.get("ELSE")
             if elsecase:
                 query += f" ELSE {elsecase}"
-            query += f"END AS {cases['AS']}"
+            query += f" END AS {cases['AS']}"
         else:
             query+= "*"
         query += f" FROM {table_name}"
@@ -83,7 +83,7 @@ def get_select_query(table_name: str,
     else:
         query = f"SELECT {', '.join(columns)}"
         if cases:
-            query += " CASE"
+            query += ", CASE"
             for k, v in cases.items():
                 if k in ["ELSE","AS"]:
                     continue
@@ -91,7 +91,7 @@ def get_select_query(table_name: str,
             elsecase = cases.get("ELSE")
             if elsecase:
                 query += f" ELSE {elsecase}"
-            query += f"END AS {cases['AS']}"
+            query += f" END AS {cases['AS']}"
         query += f" FROM {table_name}"
     if join:
         real_table_name1 = table_name.split()[-1]
@@ -101,7 +101,7 @@ def get_select_query(table_name: str,
         else:
             side_join = ""
 
-        query += f"{side_join} JOIN {real_table_name2} ON {real_table_name2}.{join[1][0]} = {real_table_name1}.{join[1][0]}"
+        query += f" {side_join} JOIN {join[0]} ON {real_table_name2}.{join[1][0]} = {real_table_name1}.{join[1][0]}"
         for column in join[1][1:]:
             query += f" AND {real_table_name2}.{column} = {real_table_name1}.{column}"
     if where:

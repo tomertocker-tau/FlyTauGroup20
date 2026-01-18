@@ -174,41 +174,42 @@ def find_flights_by(flight_id:Union[str,int] = None,
     if flight_id:
         conditions.append(f"Flights.FlightID = {flight_id}")
     if status:
-        conditions.append(f"F.Status = {status}")
+        conditions.append(f"F.Status = '{status}'")
     if source_field:
         conditions.append(f"Flights.SourceField LIKE '%{source_field}%'")
     if destination_field:
         conditions.append(f"Flights.DestinationField LIKE '%{destination_field}%'")
     if take_off_time:
-        conditions.append(f"Flights.TakeOffTime=={take_off_time}")
+        conditions.append(f"Flights.TakeOffTime='{take_off_time.__str__().split('.')[0]}'")
     if before_time:
-        conditions.append(f"Flights.TakeOffTime<{before_time}")
+        conditions.append(f"Flights.TakeOffTime<'{before_time.__str__().split('.')[0]}'")
     if after_time:
-        conditions.append(f"Flights.TakeOffTime>{after_time}")
+        conditions.append(f"Flights.TakeOffTime>'{after_time.__str__().split('.')[0]}'")
     if num_seats:
-        prices_subquery = table_class_prices_query(num_seats)
-        status_subquery = flight_status_query()
-        joint_subquery = get_select_query(f"({status_subquery}) AS FStatus",
-                                          join=(f"({prices_subquery} AS FPrices", ["FlightID"]))
-        allquery = get_select_query("Flights",
-                                    columns,
-                                    where=" AND ".join(conditions) if len(conditions)>0 else None,
-                                    join=(f"({joint_subquery}) AS F",["FlightID"]),
-                                    side_join="Outer")
-        return select(f"({allquery}) AS FF")
+        pass
     else:
-        status_subquery = flight_status_query()
-        return select("Flights",
-                      columns,
-                      where=" AND ".join(conditions) if len(conditions)>0 else None,
-                      join=(f"({status_subquery}) AS F",["FlightID"]))
+        num_seats = 0
+    prices_subquery = table_class_prices_query(num_seats)
+    status_subquery = flight_status_query()
+    classes = [cls["ClassType"] for cls in select("Class",
+                                                  ["ClassType"],
+                                                  group_by=["ClassType"])]
+    joint_subquery = get_select_query(f"({status_subquery}) AS FStatus",
+                                      ["FStatus.FlightID", "FStatus.FlightStatus"]+[f"FPrices.{cls}_price" for cls in classes],
+                                      join=(f"({prices_subquery}) AS FPrices", ["FlightID"]))
+    allquery = get_select_query("Flights",
+                                columns + ["F.FlightStatus"]+[f"F.{cls}_price" for cls in classes],
+                                where=" AND ".join(conditions) if len(conditions)>0 else None,
+                                join=(f"({joint_subquery}) AS F",["FlightID"]),
+                                side_join="LEFT")
+    return select(f"({allquery}) AS FF")
 
 def get_available_pilots(on_time: datetime, required_qualify: bool = False):
     if required_qualify:
         q_required = get_select_query("Pilots",
                                       ["PilotID"],
                                       where="Qualified4LongFlights==1")
-        return select(f"({attendants_on_land_query(on_time)}) AS AvailablePilots",
+        return select(f"({pilots_on_land_query(on_time)}) AS AvailablePilots",
                       ["PilotID"],
                       join=(f"({q_required}) AS RequiredPilots", ["PilotID"]))
     return select(f"({pilots_on_land_query(on_time)}) AS AvailablePilots",
@@ -228,10 +229,10 @@ def get_available_attendants(on_time: datetime, required_qualify: bool = False):
 
 def get_available_seats(flight_id : Union[str, int], class_type: str):
     q_flights = get_select_query("FlightPrices",
-                                 ["FlightID", "PlainID", "ClassType"],
+                                 ["FlightPrices.FlightID", "FlightPrices.PlainID", "FlightPrices.ClassType"],
                                  where=f"FlightPrices.FlightID={flight_id} AND FlightPrices.ClassType={class_type}",
                                  join=("Class", ["PlainID","ClassType"]))
-    rows, cols = select(f"({q_flights}) AS FP",
+    rows, cols = select(f"({q_flights}) AS FSizes",
                         ["Rows", "Cols"])[0]
     q_occupied = occupied_seats_by_flight_and_class_query()
     occupied = select(f"({q_occupied}) AS O",
@@ -254,31 +255,25 @@ def get_customer_history(email: str, status: str = None):
     :return: OrderID, ClassType, NumSeats, SourceField, DestinationField, TakeOffTime, OrderPrice, Status
     '''
     q_seats = occupied_seats_by_flight_and_class_query()
-    q_orders_guests = get_select_query("GuestOrders",
-                                       where=f"GuestOrders.Email={email}")
-    q_orders_customers = get_select_query("CustomerOrders",
-                                          where=f"CustomerOrders.Email={email}")
-    q_orders_union = f"(({q_orders_guests}) UNION ({q_orders_customers})) AS UnionOrders"
-    status_condition = f" AND UnionOrders.Status={status}" if status else ""
+    status_condition = f" AND S.OrderStatus='{status}'" if status else ""
     q_with_client = get_select_query(q_seats,
-                                     ["OrderID", "FlightID", "ClassType"],
-                                     join=(q_orders_union, ["OrderID", "FlightID", "ClassType"]),
-                                     where=f"UnionOrders.Email={email}"+status_condition)
+                                     where=f"S.Email='{email}'"+status_condition)
     q_count_seats = get_select_query(f"({q_with_client}) AS WithClient",
-                                     ["OrderID", "FlightID", "ClassType", "OrderStatus", "COUNT(OrderID) AS NumSeats"],
-                                     group_by=["OrderID"],
+                                     ["WithClient.OrderID", "WithClient.FlightID", "WithClient.ClassType",
+                                      "WithClient.OrderStatus", "WithClient.OrderDate", "COUNT(WithClient.OrderID) AS NumSeats", "FlightPrices.Price"],
+                                     group_by=["WithClient.OrderID", "WithClient.FlightID", "WithClient.ClassType", "WithClient.OrderStatus", "WithClient.OrderDate", "FlightPrices.Price"],
                                      join=("FlightPrices",["FlightID","ClassType"]))
     q_orders = get_select_query(f"({q_count_seats}) AS CountSeats",
-                                ["OrderID", "FlightID", "ClassType","NumSeats", "OrderStatus"],
+                                ["CountSeats.OrderID", "CountSeats.FlightID", "CountSeats.ClassType","CountSeats.NumSeats", "CountSeats.OrderStatus", "CountSeats.OrderDate"],
                                 cases={
-                                    "CountSeats.OrderStatus='Deleted'": "NumSeats*Price*0.05",
-                                    "CountSeats.OrderStatus!='Deleted' AND FlightStatus.FlightStatus='Deleted'": "0",
-                                    "ELSE": "NumSeats*Price",
+                                    "CountSeats.OrderStatus='Customer_Cancelled'": "CountSeats.NumSeats*CountSeats.Price*0.05",
+                                    "CountSeats.OrderStatus='System_Cancelled'": "0",
+                                    "ELSE": "CountSeats.NumSeats*CountSeats.Price",
                                     "AS": "OrderPrice"
-                                },
-                                join=(f"({flight_status_query()}) AS FlightStatus", ["FlightID"]))
+                                })
     return select(f"({q_orders}) AS O",
-                  ["OrderID", "ClassType", "NumSeats", "SourceField","DestinationField","TakeOffTime", "OrderPrice", "OrderStatus"])
+                  ["O.*", "Flights.SourceField","Flights.DestinationField","Flights.TakeOffTime"],
+                  join=("Flights", ["FlightID"]))
 
 
 
@@ -347,11 +342,11 @@ def find_available_plains(take_off_time: datetime,
                                                  ["FlightID", "PlainID", "TakeOffTime", "DestinationField"])
     q_joint = get_select_query(f"({q_count_classes_plains}) AS C",
                                join=(f"({q_landing}) AS Landing", ["PlainID"]),
-                               side_join="Left")
+                               side_join="LEFT")
     ans = select(f"({q_joint}) AS J",
                  ["J.PlainID", "J.NumClasses"],
-                 where=f"(J.TakeOffTime>{landing_time} "
-                       f"OR J.LandingTime<{take_off_time} "
+                 where=f"(J.TakeOffTime>'{landing_time.__str__().split('.')[0]}' "
+                       f"OR J.LandingTime<'{take_off_time.__str__().split('.')[0]}' "
                        f"OR J.TakeOffTime IS NULL "
                        f"OR J.LandingTime IS NULL) "
                        f"AND J.NumClasses>={num_classes}"
