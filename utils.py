@@ -237,20 +237,22 @@ def get_available_attendants(on_time: datetime, required_qualify: bool = False):
 
 def get_available_seats(flight_id : Union[str, int], class_type: str):
     q_flights = get_select_query("FlightPrices",
-                                 ["FlightPrices.FlightID", "FlightPrices.PlainID", "FlightPrices.ClassType"],
-                                 where=f"FlightPrices.FlightID={flight_id} AND FlightPrices.ClassType={class_type}",
+                                 ["FlightPrices.FlightID", "FlightPrices.PlainID", "FlightPrices.ClassType",
+                                  "Class.NumberRows", "Class.NumberCols"],
+                                 where=f"FlightPrices.FlightID={flight_id} AND FlightPrices.ClassType='{class_type}'",
                                  join=("Class", ["PlainID","ClassType"]))
-    rows, cols = select(f"({q_flights}) AS FSizes",
-                        ["Rows", "Cols"])[0]
+    shape = select(f"({q_flights}) AS FSizes",
+                        ["FSizes.NumberRows", "FSizes.NumberCols"])[0]
+    rows, cols = shape["NumberRows"], shape["NumberCols"]
     q_occupied = occupied_seats_by_flight_and_class_query()
-    occupied = select(f"({q_occupied}) AS O",
-                      ["Line", "SeatLetter"],
-                      where=f"O.FlightID=={flight_id} AND O.ClassType=={class_type}")
+    occupied = select(q_occupied,
+                      ["S.Line", "S.SeatLetter"],
+                      where=f"S.FlightID={flight_id} AND S.ClassType='{class_type}'")
     seats_matrix = []
     for r in range(1, rows + 1):
         seats_matrix.append([])
         for c in range(1, cols + 1):
-            isin_occupied = (r,c) in occupied
+            isin_occupied = {"Line": r, "SeatLetter": c} in occupied
             seats_matrix[-1].append(isin_occupied)
     return seats_matrix
 
