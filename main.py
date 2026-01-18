@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from utils import db_cur, check_if_admin, get_customer_history
+''''from utils import *'''''
 from flask_session import Session
 from datetime import date,timedelta, datetime
 import secrets
 import os
+from dummies import *
+
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = secrets.token_hex(32)
@@ -28,17 +30,12 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        with db_cur() as cursor:
-            cursor.execute(""""
-            SELECT Customers.Email, Customers.UserPassword
-            FROM Customers""")
-            user = cursor.fetchone()
-            if user and user["password"] == password:
+        if check_login(email, password):
                 session.permanent = True
-                session["email"] = user["email"]
+                session["email"] = email
                 return render_template("users_page.html")
 
-            return render_template(
+        return render_template(
                 "login.html",
                 message="Incorrect login details"
             )
@@ -61,13 +58,7 @@ def signup():
         passport_num = request.form.get('passport_num')
         date_of_birth = request.form.get('date_of_birth')
         signup_date = str(date.today())
-        with db_cur() as cursor:
-            cursor.execute(""""
-                   SELECT Customers.Email
-                   FROM Customers
-                    WHERE Email = %s""", (email,))
-            user = cursor.fetchone()
-            if user:
+        if customer_exists(email):
                 return render_template(
                     "login.html",
                     message="You are already registered"
@@ -84,17 +75,12 @@ def login_admin():
     if request.method == 'POST':
         id = request.form.get('ID')
         password = request.form.get('password')
-        with db_cur() as cursor:
-            cursor.execute(""""
-            SELECT ManagerID, Managers.UserPassword
-            FROM Managers""")
-            user = cursor.fetchone()
-            if user and user["password"] == password:
+        if check_admin_login(id, password):
                 session.permanent = True
-                session["ID"] = user["ID"]
+                session["ID"]=id
                 return render_template("managers_page.html")
 
-            return render_template(
+        return render_template(
                 "login_admin.html",
                 message="Incorrect login details"
             )
@@ -148,10 +134,6 @@ def manage_order():
         return render_template("booking_details.html", order=get_order(order_id, email), show_cancel_button=is_cancellable)
 
     return render_template("manage_order.html")
-
-
-def get_order(order_id, email):
-    return {"Order_ID": "0123", "ClassType" : "business", "NumSeats" : 5, "SourceField": "London", "DestinationField": "Paris", "TakeOffTime": "2000-10-1 14:20:00", "OrderPrice": "200$", "OrderStatus": "active"}
 
 
 if __name__ == '__main__':
