@@ -25,8 +25,8 @@ Session(app)
 
 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
+@app.route('/login_new', methods=['GET', 'POST'])
+def login_new():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -36,18 +36,18 @@ def login():
                 return render_template("users_page.html")
 
         return render_template(
-                "login.html",
+                "login_new.html",
                 message="Incorrect login details"
             )
-    return render_template("login.html")
+    return render_template("login_new.html")
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
+@app.route('/signup_new', methods=['GET', 'POST'])
+def signup_new():
     if request.method == 'POST':
         phone_count = request.form.get('phone_count', type=int)
         if phone_count and not request.form.getlist("phones"):
             return render_template(
-                "signup.html",
+                "signup_new.html",
                 phone_count=phone_count)
 
         First_name = request.form.get('First_name')
@@ -60,15 +60,15 @@ def signup():
         signup_date = str(date.today())
         if customer_exists(email):
                 return render_template(
-                    "login.html",
+                    "login_new.html",
                     message="You are already registered"
                 )
         if check_if_admin(email):
             return render_template(
-                "signup.html",
+                "signup_new.html",
                 message="Admins are not allowed to order flights")
-        return render_template("login.html")
-    return  render_template("signup.html")
+        return render_template("login_new.html")
+    return  render_template("signup_new.html")
 
 @app.route('/login_admin', methods=['GET', 'POST'])
 def login_admin():
@@ -86,7 +86,7 @@ def login_admin():
             )
     return render_template("login_admin.html")
 @app.route('/', methods=['GET', 'POST'])
-def homepage():
+def homepagenew():
     if request.method == 'POST':
         SourceField = request.form.get('SourceField')
         DestinationField = request.form.get('DestinationField')
@@ -94,7 +94,7 @@ def homepage():
         PassengersAmount = request.form.get('PassengersAmount')
         return render_template("Users_Flight_Table.html")
 
-    return render_template("homepage.html")
+    return render_template("homepagenew.html")
 
 @app.route('/flights', methods=['GET', 'POST'])
 def users_page():
@@ -110,7 +110,7 @@ def users_page():
 @app.route("/flight-history", methods=['GET','POST'])
 def filter_history():
     if 'email' not in session:
-        return render_template("login.html")
+        return render_template("login_new.html")
     user_email = session.get("email")
     if request.method == 'POST':
         status = request.args.get("status")

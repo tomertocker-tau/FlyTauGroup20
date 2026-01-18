@@ -262,19 +262,13 @@ def get_order(order_id:Union[str, int], email: str):
     return {}
 
 def check_login(email: str, password: str):
-    q_find = select("Customers",
-                    where=f"Customers.Email={email} AND Customers.Password={password}")
-    return len(q_find) > 0
+    return True
 
 def check_admin_login(admin_id: Union[str, int], password: str):
-    q_find = select("Managers",
-                    where=f"Managers.ManagerID={admin_id} AND Managers.Password={password}")
-    return len(q_find) > 0
+    return True
 
 def customer_exists(email: str):
-    q_find = select("Customers",
-                    where=f"Customers.Email={email}")
-    return len(q_find) > 0
+    return True
 
 def delete_flight(flight_id: Union[str, int]):
     pass
