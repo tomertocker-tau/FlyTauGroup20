@@ -96,18 +96,26 @@ def homepagenew():
 
     return render_template("homepagenew.html")
 
-@app.route('/flights', methods=['GET', 'POST'])
-def users_page():
+@app.route('/users_page', methods=['GET', 'POST'])
+def flights():
+    if request.method == 'GET':
+        return render_template("users_page.html")
+
     if request.method == 'POST':
         origin = request.form.get('origin')
         destination = request.form.get('destination')
         departure_date = request.form.get('departure_date')
         passengers = request.form.get('passengers')
-        return render_template("Users_Flight_Table.html")
 
-    return render_template("users_page.html")
+        return render_template(
+            "Users_Flight_Table.html",
+            origin=origin,
+            destination=destination,
+            departure_date=departure_date,
+            passengers=passengers
+        )
 
-@app.route("/flight-history", methods=['GET','POST'])
+@app.route("/users_page", methods=['GET','POST'])
 def filter_history():
     if 'email' not in session:
         return render_template("login_new.html")
