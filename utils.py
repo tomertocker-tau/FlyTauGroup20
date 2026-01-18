@@ -1,4 +1,4 @@
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from typing import Union, Dict, List, Tuple
 from str_queries import *
 from sql_base import insert, update
@@ -212,27 +212,20 @@ def find_flights_by(flight_id:Union[str,int] = None,
                                 side_join="LEFT")
     return select(f"({allquery}) AS FF")
 
-def get_available_pilots(on_time: datetime, required_qualify: bool = False):
-    if required_qualify:
-        q_required = get_select_query("Pilots",
-                                      ["PilotID"],
-                                      where="Qualified4LongFlights==1")
-        return select(f"({pilots_on_land_query(on_time)}) AS AvailablePilots",
-                      ["PilotID"],
-                      join=(f"({q_required}) AS RequiredPilots", ["PilotID"]))
-    return select(f"({pilots_on_land_query(on_time)}) AS AvailablePilots",
-                  ["PilotID"])
+def get_available_pilots(take_off_time: datetime,
+                          landing_time: datetime,
+                          source_field: str,
+                          is_long_flight: bool):
+    q_ans = get_availables_query("Pilots", "PilotID", take_off_time, landing_time, source_field, is_long_flight)
+    return [s["PilotID"] for s in select(f"({q_ans}) AS Q")]
 
-def get_available_attendants(on_time: datetime, required_qualify: bool = False):
-    if required_qualify:
-        q_required = get_select_query("FlightAttendants",
-                                      ["AttendantID"],
-                                      where="Qualified4LongFlights==1")
-        return select(f"({attendants_on_land_query(on_time)}) AS AvailableAttendants",
-                      ["AttendantID"],
-                      join=(f"({q_required}) AS RequiredAttendants",["AttendantID"]))
-    return select(f"({attendants_on_land_query(on_time)}) AS AvailableAttendants",
-                  ["AttendantID"])
+def get_available_attendants(take_off_time: datetime,
+                          landing_time: datetime,
+                          source_field: str,
+                          is_long_flight: bool):
+    q_ans = get_availables_query("FlightAttendants", "AttendantID", take_off_time, landing_time, source_field, is_long_flight)
+    return [s["AttendantID"] for s in select(f"({q_ans}) AS Q")]
+
 
 
 def get_available_seats(flight_id : Union[str, int], class_type: str):
@@ -256,6 +249,10 @@ def get_available_seats(flight_id : Union[str, int], class_type: str):
             seats_matrix[-1].append(isin_occupied)
     return seats_matrix
 
+def get_price(num_seats: int, flight_id: int, class_type: str):
+    price_per_seat = select("FlightPrices AS FP", ["FP.Price"],
+                            where=f"FP.FlightID={flight_id} AND FP.ClassType='{class_type}'")[0]["Price"]
+    return price_per_seat * num_seats
 
 def get_customer_history(email: str, status: str = None):
     '''
@@ -285,17 +282,18 @@ def get_customer_history(email: str, status: str = None):
                   ["O.*", "Flights.SourceField","Flights.DestinationField","Flights.TakeOffTime"],
                   join=("Flights", ["FlightID"]))
 
-
+def get_assigned_customer(email: str):
+    return select("Customers", where=f"Customers.Email='{email}'")
 
 
 def delete_order(order_id: Union[str, int], is_signed_up: bool = False):
     if is_signed_up:
         update("CustomerOrders",
-               {"OrderStatus":"Deleted"},
+               {"OrderStatus":"'Customer_Cancelled'"},
                where=f"CustomerOrders.OrderID={order_id}")
     else:
         update("GuestOrders",
-               {"OrderStatus":"Deleted"},
+               {"OrderStatus":"'Customer_Cancelled'"},
                where=f"GuestOrders.OrderID={order_id}")
 
 def get_order(order_id:Union[str, int], email: str):
@@ -329,14 +327,18 @@ def assigned_customer_exists(email: str):
 def delete_flight(flight_id: Union[str, int]):
     update("Flights", {"IsDeleted": "1"},
            where=f"Flights.FlightID={flight_id}")
+    update("CustomerOrders", {"OrderStatus":"System_Cancelled"},
+           where=f"CustomerOrders.FlightID={flight_id}")
+    update("GuestOrders", {"OrderStatus":"System_Cancelled"},
+           where=f"GuestOrders.FlightID={flight_id}")
 
 def get_flight_category(source_field: str, destination_field: str):
     ans = select("Routes", ["FlightDuration"],
-                 where=f"SourceField={source_field} AND DestinationField={destination_field}"
+                 where=f"SourceField='{source_field}' AND DestinationField='{destination_field}'"
                  )
     if len(ans) == 0:
         return
-    if ans[0]["FlightDuration"] > 6:
+    if ans[0]["FlightDuration"] > timedelta(hours=6):
         return "Long"
     return "Short"
 
@@ -344,22 +346,5 @@ def find_available_plains(take_off_time: datetime,
                           landing_time: datetime,
                           source_field: str,
                           is_long_flight: bool):
-    num_classes = 2 if is_long_flight else 1
-    q_count_classes_plains = get_select_query("Class",
-                                                ["Class.PlainID", "SUM(Class.PlainID) AS NumClasses"],
-                                              group_by=["Class.PlainID"])
-    q_landing = flights_table_with_landing_query("Flights",
-                                                 ["FlightID", "PlainID", "TakeOffTime", "DestinationField"])
-    q_joint = get_select_query(f"({q_count_classes_plains}) AS C",
-                               join=(f"({q_landing}) AS Landing", ["PlainID"]),
-                               side_join="LEFT")
-    ans = select(f"({q_joint}) AS J",
-                 ["J.PlainID", "J.NumClasses"],
-                 where=f"(J.TakeOffTime>'{landing_time.__str__().split('.')[0]}' "
-                       f"OR J.LandingTime<'{take_off_time.__str__().split('.')[0]}' "
-                       f"OR J.TakeOffTime IS NULL "
-                       f"OR J.LandingTime IS NULL) "
-                       f"AND J.NumClasses>={num_classes}"
-                       f"AND (J.DestinationField={source_field} "
-                       f"OR J.DestinationField IS NULL)")
-    return ans
+    q_ans = get_availables_query("Plains", "PlainID",take_off_time, landing_time, source_field, is_long_flight)
+    return [s["PlainID"] for s in select(f"({q_ans}) AS Q")]

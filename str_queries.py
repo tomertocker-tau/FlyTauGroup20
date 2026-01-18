@@ -75,11 +75,12 @@ def table_class_prices_query(atleast: int = 0):
                                   side_join="LEFT")
     return t_cols
 
-def flights_table_with_landing_query(table_query: str, columns: List[str]):
-    q_join = get_select_query(f"({table_query}) AS Ftag_A",
+def get_flights_with_landing_query():
+    q_join = get_select_query("Flights",
+                              ["Flights.*", "Routes.FlightDuration"],
                               join=("Routes", ["SourceField", "DestinationField"]))
     q_landing = get_select_query(f"({q_join}) AS Ftag_B",
-                                 [f"Ftag_B.{c}" for c in columns] + ["Ftag_B.TakeOffTime + Ftag_B.FlightDuration AS LandingTime"])
+                                 [f"Ftag_B.*", "Ftag_B.TakeOffTime + Ftag_B.FlightDuration AS LandingTime"])
     return q_landing
 
 def flight_status_query():
@@ -102,50 +103,50 @@ def flight_status_query():
                             })
 
 
-def locate_attendants_query():
-    q_attendants = get_select_query("Flights",
-                                    ["FlightID", "SourceField", "DestinationField", "TakeOffTime"],
-                                    join=("WorkingFlightAttendants", ["FlightID"]))
-    q_when_attendants = get_select_query(f"({q_attendants}) AS FA",
-                                         ["AttendantID", "MAX(TakeOffTime) AS TakeOffTime"],
-                                         group_by=["AttendantID"])
-    q_where_attendants = get_select_query(f"({q_attendants}) AS FB",
-                                          ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"],
-                                          join=(f"({q_when_attendants}) AS FC", ["FlightID"]))
-    q_all_attendants = get_select_query(f"({q_where_attendants}) AS F",
-                                        ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"],
-                                        join=("FlightAttendants", ["AttendantID"]),
-                                        side_join="RIGHT")
-    return get_select_query(f"({q_all_attendants}) AS Ftag",
-                            ["AttendantID", "SourceField", "DestinationField", "TakeOffTime"])
+def get_availables_query(origin_table: str, pivot_column: str, take_off_time: datetime, landing_time: datetime, source_field: str, is_long_flight: bool):
+     if (pivot_column == "PlainID" and origin_table == "Plains"):
+         q_table = get_select_query(origin_table, [f"{origin_table}.{pivot_column}",
+                                                   "FT.FlightID",
+                                                   "FT.SourceField",
+                                                   "FT.DestinationField",
+                                                   "FT.TakeOffTime",
+                                                   "FT.LandingTime"],
+                                    cases={
+                                        f"{origin_table}.Size='Large'": "BINARY(1)",
+                                        "ELSE": "BINARY(0)",
+                                        "AS": "Qualified4LongFlights"
+                                    },
+                                    join=(f"({get_flights_with_landing_query()}) AS FT", ["PlainID"]),
+                                    side_join="LEFT")
+     elif ((pivot_column=="AttendantID" and origin_table=="FlightAttendants") or
+           (pivot_column == "PilotID" and origin_table=="Pilots")):
+         w_table = get_select_query(origin_table, [f"{origin_table}.{pivot_column}",
+                                                   f"{origin_table}.Qualified4LongFlights",
+                                                   "W.FlightID"],
+                                    join=(f"WorkingFlight{pivot_column.replace('ID','s')} AS W", [pivot_column]),
+                                    side_join="LEFT")
+         q_table = get_select_query(f"({w_table}) AS Work", [f"Work.{pivot_column}",
+                                                          "Work.Qualified4LongFlights",
+                                                          "FT.FlightID",
+                                                          "FT.SourceField",
+                                                          "FT.DestinationField",
+                                                          "FT.TakeOffTime",
+                                                             "FT.LandingTime"],
+                                    join=(f"({get_flights_with_landing_query()}) AS FT", ["FlightID"]),
+                                    side_join="LEFT")
+     else:
+         raise Exception("Invalid Values in origin_table and pivot_column")
+     req_q = "AND Landing.Qualified4LongFlights " if is_long_flight else ""
+     q_check = get_select_query(f"({q_table}) AS Landing",
+                                [f"Landing.{pivot_column}"],
+                  cases={f"(Landing.TakeOffTime>'{landing_time.__str__().split('.')[0]}' "
+                        f"OR Landing.LandingTime<'{take_off_time.__str__().split('.')[0]}' "
+                        f"OR ISNULL(Landing.TakeOffTime) "
+                        f"OR ISNULL(Landing.LandingTime)) "
+                        + req_q +
+                        f"AND (Landing.DestinationField='{source_field}' "
+                        f"OR ISNULL(Landing.DestinationField))":"1","ELSE": "0", "AS": "IsAvailable"})
+     q_ans = get_select_query(origin_table, [f"{origin_table}.{pivot_column}"],
+                              where=f"NOT EXIST(SELECT 1 FROM ({q_check}) AS CheckAvailable WHERE CheckAvailable.{pivot_column}={origin_table}.{pivot_column})")
+     return q_ans
 
-def locate_pilots_query():
-    q_pilots = get_select_query("Flights",
-                                    ["FlightID", "SourceField", "DestinationField", "TakeOffTime"],
-                                    join=("WorkingPilots", ["FlightID"]))
-    q_when_pilots = get_select_query(f"({q_pilots}) AS FA",
-                                         ["PilotID", "MAX(TakeOffTime) AS TakeOffTime"],
-                                         group_by=["PilotID"])
-    q_where_pilots = get_select_query(f"({q_pilots}) AS FB",
-                                          ["PilotID", "SourceField", "DestinationField", "TakeOffTime"],
-                                          join=(f"({q_when_pilots}) AS FC", ["FlightID"]))
-    q_all_pilots = get_select_query(f"({q_where_pilots}) AS F",
-                                        ["PilotID", "SourceField", "DestinationField", "TakeOffTime"],
-                                        join=("Pilots", ["PilotID"]),
-                                        side_join="RIGHT")
-    return get_select_query(f"({q_all_pilots}) AS Ftag",
-                            ["PilotID", "SourceField", "DestinationField", "TakeOffTime"])
-
-def attendants_on_land_query(landing_time: datetime):
-    q_locate = locate_attendants_query()
-    q_landing = flights_table_with_landing_query(q_locate,
-                                                 ["AttendantID", "DestinationField", "TakeOffTime"])
-    return get_select_query(f"({q_landing}) AS Ftag_C",
-                            where=f"LandingTime<'{landing_time.__str__().split('.')[0]}' OR LandingTime IS NULL")
-
-def pilots_on_land_query(landing_time: datetime):
-    q_locate = locate_pilots_query()
-    q_landing = flights_table_with_landing_query(q_locate,
-                                                 ["PilotID", "DestinationField", "TakeOffTime"])
-    return get_select_query(f"({q_landing}) AS Ftag_C",
-                            where=f"LandingTime<'{landing_time.__str__().split('.')[0]}' OR LandingTime IS NULL")
