@@ -8,7 +8,7 @@
 
 <h2>Search Flight</h2>
 
-<form id="flight_search_form" action="/flights" method="get">
+<form id="flight_search_form" action="/flights" method="post">
   <datalist id="airports_list">
     {% for airport in airports %}
       <option value="{{ airport.name }} ({{ airport.code }})"></option>

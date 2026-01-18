@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from utils import db_cur, check_if_admin, get_customer_history
+''''from utils import *'''''
 from flask_session import Session
 from datetime import date,timedelta, datetime
 import secrets
 import os
+from dummies import *
+
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = secrets.token_hex(32)
@@ -23,34 +25,29 @@ Session(app)
 
 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
+@app.route('/login_new', methods=['GET', 'POST'])
+def login_new():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        with db_cur() as cursor:
-            cursor.execute(""""
-            SELECT Customers.Email, Customers.UserPassword
-            FROM Customers""")
-            user = cursor.fetchone()
-            if user and user["password"] == password:
+        if check_login(email, password):
                 session.permanent = True
-                session["email"] = user["email"]
+                session["email"] = email
                 return render_template("users_page.html")
 
-            return render_template(
-                "login.html",
+        return render_template(
+                "login_new.html",
                 message="Incorrect login details"
             )
-    return render_template("login.html")
+    return render_template("login_new.html")
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
+@app.route('/signup_new', methods=['GET', 'POST'])
+def signup_new():
     if request.method == 'POST':
         phone_count = request.form.get('phone_count', type=int)
         if phone_count and not request.form.getlist("phones"):
             return render_template(
-                "signup.html",
+                "signup_new.html",
                 phone_count=phone_count)
 
         First_name = request.form.get('First_name')
@@ -61,46 +58,35 @@ def signup():
         passport_num = request.form.get('passport_num')
         date_of_birth = request.form.get('date_of_birth')
         signup_date = str(date.today())
-        with db_cur() as cursor:
-            cursor.execute(""""
-                   SELECT Customers.Email
-                   FROM Customers
-                    WHERE Email = %s""", (email,))
-            user = cursor.fetchone()
-            if user:
+        if customer_exists(email):
                 return render_template(
-                    "login.html",
+                    "login_new.html",
                     message="You are already registered"
                 )
         if check_if_admin(email):
             return render_template(
-                "signup.html",
+                "signup_new.html",
                 message="Admins are not allowed to order flights")
-        return render_template("login.html")
-    return  render_template("signup.html")
+        return render_template("login_new.html")
+    return  render_template("signup_new.html")
 
 @app.route('/login_admin', methods=['GET', 'POST'])
 def login_admin():
     if request.method == 'POST':
         id = request.form.get('ID')
         password = request.form.get('password')
-        with db_cur() as cursor:
-            cursor.execute(""""
-            SELECT ManagerID, Managers.UserPassword
-            FROM Managers""")
-            user = cursor.fetchone()
-            if user and user["password"] == password:
+        if check_admin_login(id, password):
                 session.permanent = True
-                session["ID"] = user["ID"]
+                session["ID"]=id
                 return render_template("managers_page.html")
 
-            return render_template(
+        return render_template(
                 "login_admin.html",
                 message="Incorrect login details"
             )
     return render_template("login_admin.html")
 @app.route('/', methods=['GET', 'POST'])
-def homepage():
+def homepagenew():
     if request.method == 'POST':
         SourceField = request.form.get('SourceField')
         DestinationField = request.form.get('DestinationField')
@@ -108,23 +94,31 @@ def homepage():
         PassengersAmount = request.form.get('PassengersAmount')
         return render_template("Users_Flight_Table.html")
 
-    return render_template("homepage.html")
+    return render_template("homepagenew.html")
 
-@app.route('/flights', methods=['GET', 'POST'])
-def users_page():
+@app.route('/users_page', methods=['GET', 'POST'])
+def flights():
+    if request.method == 'GET':
+        return render_template("users_page.html")
+
     if request.method == 'POST':
         origin = request.form.get('origin')
         destination = request.form.get('destination')
         departure_date = request.form.get('departure_date')
         passengers = request.form.get('passengers')
-        return render_template("Users_Flight_Table.html")
 
-    return render_template("users_page.html")
+        return render_template(
+            "Users_Flight_Table.html",
+            origin=origin,
+            destination=destination,
+            departure_date=departure_date,
+            passengers=passengers
+        )
 
-@app.route("/flight-history", methods=['GET','POST'])
+@app.route("/users_page", methods=['GET','POST'])
 def filter_history():
     if 'email' not in session:
-        return render_template("login.html")
+        return render_template("login_new.html")
     user_email = session.get("email")
     if request.method == 'POST':
         status = request.args.get("status")
@@ -148,10 +142,6 @@ def manage_order():
         return render_template("booking_details.html", order=get_order(order_id, email), show_cancel_button=is_cancellable)
 
     return render_template("manage_order.html")
-
-
-def get_order(order_id, email):
-    return {"Order_ID": "0123", "ClassType" : "business", "NumSeats" : 5, "SourceField": "London", "DestinationField": "Paris", "TakeOffTime": "2000-10-1 14:20:00", "OrderPrice": "200$", "OrderStatus": "active"}
 
 
 if __name__ == '__main__':
