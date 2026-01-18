@@ -1,7 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, session
-''''from utils import *'''''
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_session import Session
-from datetime import date,timedelta, datetime
+from datetime import date, timedelta, datetime
 import secrets
 import os
 from dummies import *
@@ -24,117 +23,921 @@ app.config.update(
 Session(app)
 
 
+@app.route('/')
+def homepagenew():
+    """Homepage with search functionality"""
+    return render_template("homepagenew.html")
+
+
+@app.route('/search_flights', methods=['GET', 'POST'])
+def search_flights():
+    """Handle flight search from homepage"""
+    if request.method == 'POST':
+        source_field = request.form.get('SourceField')
+        destination_field = request.form.get('DestinationField')
+        take_off_date = request.form.get('TakeOffDate')
+        passengers_amount = request.form.get('PassengersAmount')
+
+        # Store search parameters in session
+        session['search_params'] = {
+            'source': source_field,
+            'destination': destination_field,
+            'date': take_off_date,
+            'passengers': passengers_amount
+        }
+
+        # Get flights based on search criteria
+        flights = find_flights_by(
+            source_field=source_field,
+            destination_field=destination_field,
+            take_off_time=datetime.strptime(take_off_date, '%Y-%m-%d') if take_off_date else None
+        )
+
+        return render_template("Users_Flight_Table.html",
+                               flights=flights,
+                               search_params=session.get('search_params'))
+
+    return redirect(url_for('homepagenew'))
+
 
 @app.route('/login_new', methods=['GET', 'POST'])
 def login_new():
+    """Customer login"""
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        if check_login(email, password):
-                session.permanent = True
-                session["email"] = email
-                return render_template("users_page.html")
 
-        return render_template(
-                "login_new.html",
-                message="Incorrect login details"
-            )
+        if check_login(email, password):
+            session.permanent = True
+            session["email"] = email
+            session["user_type"] = "customer"
+            flash('Login successful!', 'success')
+            return redirect(url_for('users_page'))
+
+        return render_template("login_new.html",
+                               message="Incorrect login details")
+
     return render_template("login_new.html")
+
 
 @app.route('/signup_new', methods=['GET', 'POST'])
 def signup_new():
+    """Customer registration"""
     if request.method == 'POST':
         phone_count = request.form.get('phone_count', type=int)
-        if phone_count and not request.form.getlist("phones"):
-            return render_template(
-                "signup_new.html",
-                phone_count=phone_count)
 
-        First_name = request.form.get('First_name')
-        Last_name = request.form.get('Last_name')
+        # Handle phone number input step
+        if phone_count and not request.form.getlist("phones"):
+            return render_template("signup_new.html", phone_count=phone_count)
+
+        first_name = request.form.get('First_name')
+        last_name = request.form.get('Last_name')
         email = request.form.get('email')
         password = request.form.get('password')
         phones = request.form.getlist("phones")
         passport_num = request.form.get('passport_num')
         date_of_birth = request.form.get('date_of_birth')
         signup_date = str(date.today())
+
+        # Validation checks
         if customer_exists(email):
-                return render_template(
-                    "login_new.html",
-                    message="You are already registered"
-                )
+            return render_template("login_new.html",
+                                   message="You are already registered")
+
         if check_if_admin(email):
-            return render_template(
-                "signup_new.html",
-                message="Admins are not allowed to order flights")
-        return render_template("login_new.html")
-    return  render_template("signup_new.html")
+            return render_template("signup_new.html",
+                                   message="Admins are not allowed to order flights")
+
+        # Insert customer details
+        try:
+            insert_customer_details(
+                First_name=first_name,
+                Last_name=last_name,
+                email=email,
+                password=password,
+                passport_num=int(passport_num) if passport_num else None,
+                date_of_birth=datetime.strptime(date_of_birth, '%Y-%m-%d').date() if date_of_birth else None,
+                signup_date=datetime.strptime(signup_date, '%Y-%m-%d').date(),
+                is_signed_up=True
+            )
+
+            # Insert phone numbers
+            if phones:
+                insert_phones(email, phones, is_signed_up=True)
+
+            flash('Registration successful! Please login.', 'success')
+            return render_template("login_new.html")
+
+        except Exception as e:
+            return render_template("signup_new.html",
+                                   message=f"Registration failed: {str(e)}")
+
+    return render_template("signup_new.html")
+
 
 @app.route('/login_admin', methods=['GET', 'POST'])
 def login_admin():
+    """Manager/Admin login"""
     if request.method == 'POST':
-        id = request.form.get('ID')
+        manager_id = request.form.get('ID')
         password = request.form.get('password')
-        if check_admin_login(id, password):
-                session.permanent = True
-                session["ID"]=id
-                return render_template("managers_page.html")
 
-        return render_template(
-                "login_admin.html",
-                message="Incorrect login details"
-            )
+        if check_admin_login(manager_id, password):
+            session.permanent = True
+            session["ID"] = manager_id
+            session["user_type"] = "manager"
+            flash('Login successful!', 'success')
+            return redirect(url_for('managers_page'))
+
+        return render_template("login_admin.html",
+                               message="Incorrect login details")
+
     return render_template("login_admin.html")
-@app.route('/', methods=['GET', 'POST'])
-def homepagenew():
-    if request.method == 'POST':
-        SourceField = request.form.get('SourceField')
-        DestinationField = request.form.get('DestinationField')
-        TakeOffDate = request.form.get('TakeOffDate')
-        PassengersAmount = request.form.get('PassengersAmount')
-        return render_template("Users_Flight_Table.html")
 
-    return render_template("homepagenew.html")
+
+@app.route('/users_page')
+def users_page():
+    """Customer dashboard/main page"""
+    if 'email' not in session or session.get('user_type') != 'customer':
+        flash('Please login to access this page', 'error')
+        return redirect(url_for('login_new'))
+
+    # Get customer orders for display
+    user_email = session.get("email")
+    orders = get_customer_history(user_email) if request.args.get('show_orders') else None
+
+    return render_template("users_page.html", orders=orders)
+
+
+@app.route('/managers_page')
+def managers_page():
+    """Manager dashboard"""
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Please login as manager to access this page', 'error')
+        return redirect(url_for('login_admin'))
+
+    return render_template("managers_page.html")
+
+
+@app.route('/managers_reports_page')
+def managers_reports_page():
+    """Manager statistics reports"""
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Please login as manager to access this page', 'error')
+        return redirect(url_for('login_admin'))
+
+    return render_template("managers_reports_page.html")
+
 
 @app.route('/flights', methods=['GET', 'POST'])
-def users_page():
+def flights():
+    """Flight search from users page"""
     if request.method == 'POST':
         origin = request.form.get('origin')
         destination = request.form.get('destination')
         departure_date = request.form.get('departure_date')
         passengers = request.form.get('passengers')
-        return render_template("Users_Flight_Table.html")
+
+        # Store search parameters
+        session['search_params'] = {
+            'source': origin,
+            'destination': destination,
+            'date': departure_date,
+            'passengers': passengers
+        }
+
+        # Get flights
+        flights = find_flights_by(
+            source_field=origin,
+            destination_field=destination,
+            take_off_time=datetime.strptime(departure_date, '%Y-%m-%d') if departure_date else None
+        )
+
+        return render_template("Users_Flight_Table.html",
+                               flights=flights,
+                               search_params=session.get('search_params'))
 
     return render_template("users_page.html")
 
-@app.route("/flight-history", methods=['GET','POST'])
-def filter_history():
-    if 'email' not in session:
-        return render_template("login_new.html")
-    user_email = session.get("email")
-    if request.method == 'POST':
-        status = request.args.get("status")
-        return render_template("users_page.html",orders=get_customer_history(user_email, status))
 
-    return render_template("users_page.html",orders=get_customer_history(user_email))
+@app.route("/flight-history")
+def filter_history():
+    """View customer flight history"""
+    if 'email' not in session:
+        flash('Please login to view history', 'error')
+        return redirect(url_for('login_new'))
+
+    user_email = session.get("email")
+    status = request.args.get("status")
+
+    orders = get_customer_history(user_email, status)
+
+    return render_template("users_page.html", orders=orders, show_history=True)
+
+
+@app.route('/cancel_order/<order_id>')
+def cancel_order(order_id):
+    """checking if cancallation is possible"""
+    if 'email' not in session:
+        flash('Please login to cancel orders', 'error')
+        return redirect(url_for('login_new'))
+
+    user_email = session.get('email')
+    order = get_order(order_id, user_email)
+
+    if not order:
+        flash('Order not found', 'error')
+        return redirect(url_for('filter_history'))
+
+    flight_time_str = order["TakeOffTime"]
+    format_string = "%Y-%m-%d %H:%M:%S"
+    flight_time = datetime.strptime(flight_time_str, format_string)
+    current_time = datetime.now()
+    time_diff = flight_time - current_time
+
+    if time_diff <= timedelta(hours=36):
+        flash('Cannot cancel order within 36 hours of flight', 'error')
+        return redirect(url_for('filter_history'))
+
+    if order["OrderStatus"] == "Cancelled":
+        flash('Order is already cancelled', 'error')
+        return redirect(url_for('filter_history'))
+
+    return redirect(url_for('cancel_confirmation', order_id=order_id))
+
+
+@app.route('/cancel_confirmation/<order_id>')
+def cancel_confirmation(order_id):
+    if 'email' not in session:
+        flash('Please login to access this page', 'error')
+        return redirect(url_for('login_new'))
+
+    user_email = session.get('email')
+    order = get_order(order_id, user_email)
+
+    if not order:
+        flash('Order not found', 'error')
+        return redirect(url_for('users_page'))
+
+    return render_template("cancel_confirmation.html", order=order)
+
+
+@app.route('/confirm_cancel/<order_id>', methods=['POST'])
+def confirm_cancel(order_id):
+    """(chnging the order status to cancelled!)"""
+    if 'email' not in session:
+        flash('Please login to access this page', 'error')
+        return redirect(url_for('login_new'))
+
+    try:
+        delete_order(order_id, is_signed_up=True)
+        flash('Order cancelled successfully', 'success')
+    except Exception as e:
+        flash(f'Error cancelling order: {str(e)}', 'error')
+
+    return redirect(url_for('filter_history'))
+
+
+@app.route('/flight_board')
+def flight_board():
+    """Display flight board page"""
+    # Get all current flights
+    flights = find_flights_by()
+    return render_template("flight_board.html", flights=flights)
+
 
 @app.route('/manage_order', methods=['GET', 'POST'])
 def manage_order():
     if request.method == 'POST':
         order_id = request.form.get('order_id')
         email = request.form.get('email')
-        order = get_order(order_id,email)
-        flight_time_str = order["TakeOffTime"]
-        format_string = "%Y-%m-%d %H:%M:%S"
-        flight_time = datetime.strptime(flight_time_str, format_string)
-        current_time = datetime.now()
-        time_diff = current_time - flight_time
-        is_cancellable = (time_diff > timedelta(hours=36)) & (order["OrderStatus"] != "Cancelled")
 
-        return render_template("booking_details.html", order=get_order(order_id, email), show_cancel_button=is_cancellable)
+        order = get_order(order_id, email)
+
+        if not order:
+            flash('Order not found', 'error')
+            return render_template("manage_order.html")
+
+        return redirect(url_for('booking_details', order_id=order_id))
 
     return render_template("manage_order.html")
 
 
+@app.route('/booking_details/<order_id>')
+def booking_details(order_id):
+    if 'email' in session:
+        user_email = session.get('email')
+    else:
+        flash('Please login or use order lookup', 'error')
+        return redirect(url_for('manage_order'))
+
+    order = get_order(order_id, user_email)
+
+    if not order:
+        flash('Booking not found', 'error')
+        return redirect(url_for('users_page'))
+
+    flight_time_str = order["TakeOffTime"]
+    format_string = "%Y-%m-%d %H:%M:%S"
+    flight_time = datetime.strptime(flight_time_str, format_string)
+    current_time = datetime.now()
+    time_diff = flight_time - current_time
+    is_cancellable = (time_diff > timedelta(hours=36)) and (
+                order["OrderStatus"] not in ["Cancelled", "Customer_Cancelled"])
+
+    return render_template("booking_details.html",
+                           order=order,
+                           show_cancel_button=is_cancellable)
+
+
+@app.route('/layout')
+def layout():
+    """Layout/template page"""
+    return render_template("layout.html")
+
+
+@app.route('/add_flight_step1', methods=['GET', 'POST'])
+def add_flight_step1():
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Manager access required', 'error')
+        return redirect(url_for('login_admin'))
+
+    if request.method == 'POST':
+        source_field = request.form.get('source_field')
+        destination_field = request.form.get('destination_field')
+        takeoff_date = request.form.get('takeoff_date')
+        takeoff_time = request.form.get('takeoff_time')
+
+        flight_category = get_flight_category(source_field, destination_field)
+        if not flight_category:
+            flash('Route not found', 'error')
+            return render_template("add_flight_step1.html")
+
+        session['flight_data'] = {
+            'source_field': source_field,
+            'destination_field': destination_field,
+            'takeoff_datetime': f"{takeoff_date} {takeoff_time}",
+            'is_long_flight': flight_category == 'Long'
+        }
+
+        return redirect(url_for('add_flight_step2'))
+
+    airports = get_all_fields()
+    return render_template("add_flight_step1.html", airports=airports)
+
+
+@app.route('/add_flight_step2', methods=['GET', 'POST'])
+def add_flight_step2():
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        return redirect(url_for('login_admin'))
+
+    if 'flight_data' not in session:
+        flash('Please start from step 1', 'error')
+        return redirect(url_for('add_flight_step1'))
+
+    if request.method == 'POST':
+        selected_plane = request.form.get('selected_plane')
+        session['flight_data']['selected_plane'] = selected_plane
+        return redirect(url_for('add_flight_step3'))
+
+    takeoff_datetime = datetime.strptime(session['flight_data']['takeoff_datetime'], '%Y-%m-%d %H:%M')
+    landing_datetime = takeoff_datetime + timedelta(hours=8)
+
+    available_planes = find_available_plains(
+        take_off_time=takeoff_datetime,
+        landing_time=landing_datetime,
+        source_field=session['flight_data']['source_field'],
+        is_long_flight=session['flight_data']['is_long_flight']
+    )
+
+    if not available_planes:
+        flash('No available planes for this route and time', 'error')
+        return redirect(url_for('add_flight_step1'))
+
+    return render_template("add_flight_step2.html",
+                           planes=available_planes,
+                           flight_data=session['flight_data'])
+
+
+@app.route('/add_flight_step3', methods=['GET', 'POST'])
+def add_flight_step3():
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        return redirect(url_for('login_admin'))
+
+    if 'flight_data' not in session:
+        return redirect(url_for('add_flight_step1'))
+
+    if request.method == 'POST':
+        session['flight_data'].update({
+            'selected_pilots': request.form.getlist('pilots'),
+            'selected_attendants': request.form.getlist('attendants'),
+            'regular_price': request.form.get('regular_price'),
+            'business_price': request.form.get('business_price')
+        })
+
+        return redirect(url_for('add_flight_confirmation'))
+
+    takeoff_datetime = datetime.strptime(session['flight_data']['takeoff_datetime'], '%Y-%m-%d %H:%M')
+    is_long_flight = session['flight_data']['is_long_flight']
+    landing_datetime = takeoff_datetime + timedelta(hours=8)
+    source_field = session['flight_data']['source_field']
+
+    available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field,
+                                            is_long_flight=session['flight_data']['is_long_flight'])
+    available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field,
+                                                    is_long_flight=session['flight_data']['is_long_flight'])
+
+    return render_template("add_flight_step3.html",
+                           pilots=available_pilots,
+                           attendants=available_attendants,
+                           flight_data=session['flight_data'])
+
+
+@app.route('/add_flight_confirmation', methods=['GET', 'POST'])
+def add_flight_confirmation():
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        return redirect(url_for('login_admin'))
+
+    if 'flight_data' not in session:
+        return redirect(url_for('add_flight_step1'))
+
+    if request.method == 'POST':
+        try:
+            flight_data = session['flight_data']
+
+            insert_flight(
+                plain_id=flight_data['selected_plane'],
+                take_off_time=datetime.strptime(flight_data['takeoff_datetime'], '%Y-%m-%d %H:%M'),
+                source_field=flight_data['source_field'],
+                destination_field=flight_data['destination_field']
+            )
+
+            prices = [{
+                'PlainID': flight_data['selected_plane'],
+                'ClassType': 'Regular',
+                'Price': float(flight_data['regular_price'])
+            }]
+
+            if flight_data.get('business_price'):
+                prices.append({
+                    'PlainID': flight_data['selected_plane'],
+                    'ClassType': 'Business',
+                    'Price': float(flight_data['business_price'])
+                })
+
+            insert_flight_prices(prices)
+
+            session.pop('flight_data', None)
+            flash(f'Flight {new_flight_id} added successfully!', 'success')
+            return redirect(url_for('manager_flight_table'))
+
+        except Exception as e:
+            flash(f'Error adding flight: {str(e)}', 'error')
+
+    return render_template("add_flight_confirmation.html",
+                           flight_data=session['flight_data'])
+
+
+@app.route('/Manager_Flight_Table')
+def manager_flight_table():
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Manager access required', 'error')
+        return redirect(url_for('login_admin'))
+
+    flights = find_flights_by()
+
+    for flight in flights:
+        flight_time = flight['TakeOffTime']
+        if isinstance(flight_time, str):
+            flight_time = datetime.strptime(flight_time, '%Y-%m-%d %H:%M:%S')
+
+        current_time = datetime.now()
+        time_diff = flight_time - current_time
+
+        flight['can_cancel'] = (
+                time_diff > timedelta(hours=72) and
+                flight.get('IsDeleted', 0) == 0
+        )
+
+    return render_template("Manager_Flight_Table.html", flights=flights)
+
+
+@app.route('/delete_flight/<flight_id>')
+def delete_flight_route(flight_id):
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Manager access required', 'error')
+        return redirect(url_for('login_admin'))
+
+    flights = find_flights_by(flight_id=flight_id)
+    if not flights:
+        flash('Flight not found', 'error')
+        return redirect(url_for('manager_flight_table'))
+
+    flight = flights[0]
+
+    flight_time = flight['TakeOffTime']
+    if isinstance(flight_time, str):
+        flight_time = datetime.strptime(flight_time, '%Y-%m-%d %H:%M:%S')
+
+    current_time = datetime.now()
+    time_diff = flight_time - current_time
+
+    if time_diff <= timedelta(hours=72):
+        flash('Cannot cancel flight within 72 hours of departure', 'error')
+        return redirect(url_for('manager_flight_table'))
+
+    if flight.get('IsDeleted', 0) == 1:
+        flash('Flight is already cancelled', 'error')
+        return redirect(url_for('manager_flight_table'))
+
+    return redirect(url_for('cancel_flight_confirmation', flight_id=flight_id))
+
+
+@app.route('/cancel_flight_confirmation/<flight_id>')
+def cancel_flight_confirmation(flight_id):
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Manager access required', 'error')
+        return redirect(url_for('login_admin'))
+
+    flights = find_flights_by(flight_id=flight_id)
+    if not flights:
+        flash('Flight not found', 'error')
+        return redirect(url_for('manager_flight_table'))
+
+    flight = flights[0]
+    return render_template("cancel_flight_confirmation.html", flight=flight)
+
+
+@app.route('/confirm_cancel_flight/<flight_id>', methods=['POST'])
+def confirm_cancel_flight(flight_id):
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Manager access required', 'error')
+        return redirect(url_for('login_admin'))
+
+    try:
+        delete_flight(flight_id)
+        flash('Flight cancelled successfully', 'success')
+    except Exception as e:
+        flash(f'Error cancelling flight: {str(e)}', 'error')
+
+    return redirect(url_for('manager_flight_table'))
+
+
+@app.route('/book_flight/<flight_id>')
+def book_flight(flight_id):
+    flights = find_flights_by(flight_id=flight_id)
+    if not flights:
+        flash('Flight not found', 'error')
+        return redirect(url_for('homepagenew'))
+
+    flight = flights[0]
+
+    user_data = None
+    if 'email' in session:
+        user_email = session.get('email')
+        customer_data = get_assigned_customer(user_email)
+        if customer_data:
+            user_data = customer_data[0]
+
+    return render_template("booking_step1.html",
+                           flight=flight,
+                           user_data=user_data)
+
+
+@app.route('/booking_step1_process/<flight_id>', methods=['POST'])
+def booking_step1_process(flight_id):
+    phone_count = request.form.get('phone_count', type=int)
+
+    if phone_count and not request.form.getlist("phones"):
+        flights = find_flights_by(flight_id=flight_id)
+        flight = flights[0] if flights else None
+
+        form_data = {
+            'first_name': request.form.get('first_name'),
+            'last_name': request.form.get('last_name'),
+            'email': request.form.get('email'),
+            'class_type': request.form.get('class_type')
+        }
+
+        return render_template("booking_step1.html",
+                               flight=flight,
+                               phone_count=phone_count,
+                               form_data=form_data)
+
+    email = request.form.get('email')
+
+    is_registered = customer_exists(email) and len(get_assigned_customer(email)) > 0
+
+    session['booking_data'] = {
+        'flight_id': flight_id,
+        'first_name': request.form.get('first_name'),
+        'last_name': request.form.get('last_name'),
+        'email': email,
+        'phones': request.form.getlist('phones'),
+        'class_type': request.form.get('class_type'),
+        'is_registered': is_registered
+    }
+
+    return redirect(url_for('booking_step2'))
+
+
+@app.route('/booking_step2')
+def booking_step2():
+    if 'booking_data' not in session:
+        flash('Please start booking process again', 'error')
+        return redirect(url_for('homepagenew'))
+
+    booking_data = session['booking_data']
+    flight_id = booking_data['flight_id']
+    class_type = booking_data['class_type']
+
+    available_seats = get_available_seats(flight_id, class_type)
+
+    flights = find_flights_by(flight_id=flight_id)
+    flight = flights[0] if flights else None
+
+    return render_template("booking_step2_seats.html",
+                           flight=flight,
+                           available_seats=available_seats,
+                           class_type=class_type,
+                           booking_data=booking_data)
+
+
+@app.route('/booking_step3', methods=['POST'])
+def booking_step3():
+    if 'booking_data' not in session:
+        flash('Booking session expired', 'error')
+        return redirect(url_for('homepagenew'))
+
+    selected_seats = request.form.getlist('selected_seats')
+    if not selected_seats:
+        flash('Please select at least one seat', 'error')
+        return redirect(url_for('booking_step2'))
+
+    session['booking_data']['selected_seats'] = selected_seats
+
+    booking_data = session['booking_data']
+    flight_id = booking_data['flight_id']
+    class_type = booking_data['class_type']
+    num_seats = len(selected_seats)
+
+    total_price = get_price(num_seats, int(flight_id), class_type)
+    session['booking_data']['total_price'] = total_price
+
+    flights = find_flights_by(flight_id=flight_id)
+    flight = flights[0] if flights else None
+
+    return render_template("booking_step3_summary.html",
+                           booking_data=session['booking_data'],
+                           flight=flight,
+                           total_price=total_price)
+
+
+@app.route('/complete_booking', methods=['POST'])
+def complete_booking():
+    if 'booking_data' not in session:
+        flash('Booking session expired', 'error')
+        return redirect(url_for('homepagenew'))
+
+    try:
+        booking_data = session['booking_data']
+
+        email = booking_data['email']
+        is_registered = booking_data['is_registered']
+
+        if not is_registered:
+            insert_customer_details(
+                First_name=booking_data['first_name'],
+                Last_name=booking_data['last_name'],
+                email=email,
+                is_signed_up=False
+            )
+
+            if booking_data.get('phones'):
+                insert_phones(email, booking_data['phones'], is_signed_up=False)
+        else:
+            if booking_data.get('phones'):
+                insert_phones(email, booking_data['phones'], is_signed_up=True)
+
+        flights = find_flights_by(flight_id=booking_data['flight_id'])
+        plain_id = flights[0]['PlainID'] if flights else None
+
+        insert_order(
+            email=email,
+            plain_id=plain_id,
+            class_type=booking_data['class_type'],
+            flight_id=booking_data['flight_id'],
+            is_signed_up=is_registered
+        )
+
+        seat_data = []
+        for seat in booking_data['selected_seats']:
+            row, letter = seat.split('-')
+            seat_data.append({
+                'OrderId': order_id,
+                'Line': int(row),
+                'SeatLetter': letter
+            })
+
+        insert_order_seats(seat_data, is_signed_up=is_registered)
+
+        session.pop('booking_data', None)
+
+        flash(f'Booking successful! Order ID: {order_id}', 'success')
+        return render_template("booking_confirmation.html",
+                               order_id=order_id,
+                               email=email,
+                               total_price=booking_data.get('total_price'))
+
+    except Exception as e:
+        flash(f'Booking failed: {str(e)}', 'error')
+        return redirect(url_for('booking_step3'))
+
+
+@app.route('/add_attendant', methods=['GET', 'POST'])
+def add_attendant():
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Manager access required', 'error')
+        return redirect(url_for('login_admin'))
+
+    if request.method == 'POST':
+        try:
+            attendant_id = request.form.get('attendant_id')
+            first_name = request.form.get('first_name')
+            last_name = request.form.get('last_name')
+            phone = request.form.get('phone')
+            city = request.form.get('city')
+            street = request.form.get('street')
+            home_number = request.form.get('home_number', type=int)
+            job_start_day = request.form.get('job_start_day')
+            qualified_long = 1 if request.form.get('qualified_long') == 'yes' else 0
+
+            job_start_date = datetime.strptime(job_start_day, '%Y-%m-%d').date()
+
+            insert_attendant(
+                attendant_id=attendant_id,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                city=city,
+                street=street,
+                home_number=home_number,
+                job_start_day=job_start_date,
+                qualified4long_flights=qualified_long
+            )
+
+            flash('Flight attendant added successfully', 'success')
+            return redirect(url_for('managers_page'))
+
+        except Exception as e:
+            flash(f'Error adding attendant: {str(e)}', 'error')
+
+    return render_template("add_attendant.html")
+
+
+@app.route('/add_pilot', methods=['GET', 'POST'])
+def add_pilot():
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Manager access required', 'error')
+        return redirect(url_for('login_admin'))
+
+    if request.method == 'POST':
+        try:
+            pilot_id = request.form.get('pilot_id')
+            first_name = request.form.get('first_name')
+            last_name = request.form.get('last_name')
+            phone = request.form.get('phone')
+            city = request.form.get('city')
+            street = request.form.get('street')
+            home_number = request.form.get('home_number', type=int)
+            job_start_day = request.form.get('job_start_day')
+            qualified_long = 1 if request.form.get('qualified_long') == 'yes' else 0
+
+            job_start_date = datetime.strptime(job_start_day, '%Y-%m-%d').date()
+
+            insert_pilot(
+                pilot_id=pilot_id,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                city=city,
+                street=street,
+                home_number=home_number,
+                job_start_day=job_start_date,
+                qualified4long_flights=qualified_long
+            )
+
+            flash('Pilot added successfully', 'success')
+            return redirect(url_for('managers_page'))
+
+        except Exception as e:
+            flash(f'Error adding pilot: {str(e)}', 'error')
+
+    return render_template("add_pilot.html")
+
+
+@app.route('/add_plane', methods=['GET', 'POST'])
+def add_plane():
+    if 'ID' not in session or session.get('user_type') != 'manager':
+        flash('Manager access required', 'error')
+        return redirect(url_for('login_admin'))
+
+    if request.method == 'POST':
+        try:
+            plane_id = request.form.get('plane_id')
+            manufacturer = request.form.get('manufacturer')
+            size = request.form.get('size')
+            purchase_date = request.form.get('purchase_date')
+
+            purchase_date_obj = datetime.strptime(purchase_date, '%Y-%m-%d').date()
+
+            insert_plain(
+                plain_id=plane_id,
+                manufacturer=manufacturer,
+                size=size,
+                purchase_date=purchase_date_obj
+            )
+
+            if size == 'Large':
+                classes = [
+                    {
+                        'PlainID': plane_id,
+                        'ClassType': 'Regular',
+                        'Rows': 30,
+                        'Cols': 6
+                    },
+                    {
+                        'PlainID': plane_id,
+                        'ClassType': 'Business',
+                        'Rows': 8,
+                        'Cols': 4
+                    }
+                ]
+            else:  # Small
+                classes = [
+                    {
+                        'PlainID': plane_id,
+                        'ClassType': 'Regular',
+                        'Rows': 20,
+                        'Cols': 4
+                    }
+                ]
+
+            insert_classes(classes)
+
+            flash('Plane purchased successfully', 'success')
+            return redirect(url_for('managers_page'))
+
+        except Exception as e:
+            flash(f'Error adding plane: {str(e)}', 'error')
+
+    return render_template("add_plane.html")
+
+
+@app.route('/logout')
+def logout():
+    """Logout user"""
+    user_type = session.get('user_type', 'user')
+    session.clear()
+    flash(f'{user_type.title()} logged out successfully', 'info')
+    return redirect(url_for('homepagenew'))
+
+
+# Context processor to make session available in templates
+@app.context_processor
+def inject_user():
+    return dict(
+        user_email=session.get('email'),
+        user_type=session.get('user_type'),
+        manager_id=session.get('ID'),
+        current_date=datetime.now().strftime('%Y-%m-%d'),
+        current_time=datetime.now().strftime('%H:%M')
+    )
+
+
+# Template filters
+@app.template_filter('datetime')
+def datetime_filter(value, format='%Y-%m-%d %H:%M'):
+    """Custom datetime filter for templates"""
+    if isinstance(value, str):
+        try:
+            value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        except:
+            return value
+    return value.strftime(format) if value else ''
+
+
+# Error handlers
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('homepagenew.html'), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    flash('An internal error occurred. Please try again.', 'error')
+    return render_template('homepagenew.html'), 500
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
