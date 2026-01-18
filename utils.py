@@ -155,12 +155,14 @@ def insert_pilot(pilot_id: Union[str, int],
            })
 
 
-def get_all_fields(except_for: str = None):
-    if except_for:
-        return select("Routes",
+def get_all_fields(to_field: str = None):
+    if to_field:
+        ret = select("Routes",
                       ["SourceField"],
-                      where=f"SourceField != {except_for}")
-    return select("Routes", ["SourceField"])
+                      where=f"DestinationField='{to_field}'")
+    else:
+        ret = select("Routes", ["SourceField"], group_by=["SourceField"])
+    return [r["SourceField"] for r in ret]
 
 
 def find_flights_by(flight_id:Union[str,int] = None,
