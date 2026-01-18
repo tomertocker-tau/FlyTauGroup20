@@ -47,6 +47,12 @@ def login():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        phone_count = request.form.get('phone_count', type=int)
+        if phone_count and not request.form.getlist("phones"):
+            return render_template(
+                "signup.html",
+                phone_count=phone_count)
+
         First_name = request.form.get('First_name')
         Last_name = request.form.get('Last_name')
         email = request.form.get('email')
@@ -58,20 +64,20 @@ def signup():
         with db_cur() as cursor:
             cursor.execute(""""
                    SELECT Customers.Email
-                   FROM Customers""")
+                   FROM Customers
+                    WHERE Email = %s""", (email,))
             user = cursor.fetchone()
-            if user == email:
+            if user:
                 return render_template(
                     "login.html",
-                    message="You are already registered")
+                    message="You are already registered"
+                )
         if check_if_admin(email):
             return render_template(
                 "signup.html",
                 message="Admins are not allowed to order flights")
         return render_template("login.html")
     return  render_template("signup.html")
-
-
 
 @app.route('/login_admin', methods=['GET', 'POST'])
 def login_admin():

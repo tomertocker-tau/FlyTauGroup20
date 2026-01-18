@@ -36,10 +36,20 @@
                 <input type="number" id="Passport_num" name="passport_num" required>
             </div>
 
-            <div class="form-group">
-                <label for="Phones">Phone Number(s):</label>
-                <input type="tel" id="Phones" name="phones" multiple required>
-            </div>
+           <div class="form-group">
+                <label for="phone_count">How many phone numbers?</label>
+                <input type="number" id="phone_count" name="phone_count"
+                    min="1" max="5" required
+                    value="{{ phone_count if phone_count }}">
+           </div>
+           {% if phone_count %}
+                <div class="form-group">
+                    <label>Phone Number(s):</label>
+                    {% for i in range(phone_count) %}
+                        <input type="tel" name="phones" placeholder="Phone {{ i + 1 }}" required>
+                    {% endfor %}
+                </div>
+           {% endif %}
 
             <div class="form-group">
                 <label for="Password">Password:</label>
