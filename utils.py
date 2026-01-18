@@ -313,17 +313,17 @@ def get_order(order_id:Union[str, int], email: str):
 
 def check_login(email: str, password: str):
     q_find = select("Customers",
-                    where=f"Customers.Email={email} AND Customers.Password={password}")
+                    where=f"Customers.Email='{email}' AND Customers.UserPassword='{password}'")
     return len(q_find) > 0
 
 def check_admin_login(admin_id: Union[str, int], password: str):
     q_find = select("Managers",
-                    where=f"Managers.ManagerID={admin_id} AND Managers.Password={password}")
+                    where=f"Managers.ManagerID={admin_id} AND Managers.UserPassword='{password}'")
     return len(q_find) > 0
 
-def customer_exists(email: str):
+def assigned_customer_exists(email: str):
     q_find = select("Customers",
-                    where=f"Customers.Email={email}")
+                    where=f"Customers.Email='{email}'")
     return len(q_find) > 0
 
 def delete_flight(flight_id: Union[str, int]):
