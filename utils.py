@@ -48,13 +48,15 @@ def insert_phones(email: str, phones: List[str], is_signed_up: bool = True):
         else:
             insert(table_name, {"Email": email, "Phone": phone})
 
-def insert_order(order_id: Union[str, int],
-                 email : str,
+def insert_order(email : str,
                  plain_id: Union[str, int],
                  class_type: str,
                  flight_id: Union[str, int],
                  is_signed_up: bool = True):
-    insert("CustomerOrders" if is_signed_up else "GuestOrders",
+    table_name = "CustomerOrders" if is_signed_up else "GuestOrders"
+    last_id = select(table_name, ["MAX(OrderID) AS MaxId"])[0]["MaxId"]
+    order_id = last_id + 1
+    insert(table_name,
            {
                "OrderId": order_id,
                "Email": email,
@@ -64,6 +66,7 @@ def insert_order(order_id: Union[str, int],
                "OrderStatus": "Done",
                "OrderDate": datetime.today()
            })
+    return order_id
 
 def insert_order_seats(order_seats: List[Dict[str, Union[str, int]]], is_signed_up: bool = True):
     for order_seat in order_seats:
@@ -85,11 +88,12 @@ def insert_classes(classes: List[Dict[str, Union[str, int]]]):
     for cls in classes:
         insert("Class", cls)
 
-def insert_flight(flight_id: Union[str, int],
-                  plain_id: Union[str, int],
+def insert_flight(plain_id: Union[str, int],
                   take_off_time: datetime,
                   source_field: str,
                   destination_field: str):
+    last_id = select("Flights", ["MAX(FlightID) AS MaxId"])[0]["MaxId"]
+    flight_id = last_id + 1
     insert("Flights",
            {
                "FlightID": flight_id,
@@ -99,6 +103,8 @@ def insert_flight(flight_id: Union[str, int],
                "TakeOffTime": take_off_time,
                "IsDeleted": "0"
            })
+    return flight_id
+
 
 def insert_flight_prices(prices: List[Dict[str, Union[str, int]]]):
     for price in prices:
@@ -149,12 +155,14 @@ def insert_pilot(pilot_id: Union[str, int],
            })
 
 
-def get_all_fields(except_for: str = None):
-    if except_for:
-        return select("Routes",
+def get_all_fields(to_field: str = None):
+    if to_field:
+        ret = select("Routes",
                       ["SourceField"],
-                      where=f"SourceField != {except_for}")
-    return select("Routes", ["SourceField"])
+                      where=f"DestinationField='{to_field}'")
+    else:
+        ret = select("Routes", ["SourceField"], group_by=["SourceField"])
+    return [r["SourceField"] for r in ret]
 
 
 def find_flights_by(flight_id:Union[str,int] = None,
@@ -229,20 +237,22 @@ def get_available_attendants(on_time: datetime, required_qualify: bool = False):
 
 def get_available_seats(flight_id : Union[str, int], class_type: str):
     q_flights = get_select_query("FlightPrices",
-                                 ["FlightPrices.FlightID", "FlightPrices.PlainID", "FlightPrices.ClassType"],
-                                 where=f"FlightPrices.FlightID={flight_id} AND FlightPrices.ClassType={class_type}",
+                                 ["FlightPrices.FlightID", "FlightPrices.PlainID", "FlightPrices.ClassType",
+                                  "Class.NumberRows", "Class.NumberCols"],
+                                 where=f"FlightPrices.FlightID={flight_id} AND FlightPrices.ClassType='{class_type}'",
                                  join=("Class", ["PlainID","ClassType"]))
-    rows, cols = select(f"({q_flights}) AS FSizes",
-                        ["Rows", "Cols"])[0]
+    shape = select(f"({q_flights}) AS FSizes",
+                        ["FSizes.NumberRows", "FSizes.NumberCols"])[0]
+    rows, cols = shape["NumberRows"], shape["NumberCols"]
     q_occupied = occupied_seats_by_flight_and_class_query()
-    occupied = select(f"({q_occupied}) AS O",
-                      ["Line", "SeatLetter"],
-                      where=f"O.FlightID=={flight_id} AND O.ClassType=={class_type}")
+    occupied = select(q_occupied,
+                      ["S.Line", "S.SeatLetter"],
+                      where=f"S.FlightID={flight_id} AND S.ClassType='{class_type}'")
     seats_matrix = []
     for r in range(1, rows + 1):
         seats_matrix.append([])
         for c in range(1, cols + 1):
-            isin_occupied = (r,c) in occupied
+            isin_occupied = {"Line": r, "SeatLetter": c} in occupied
             seats_matrix[-1].append(isin_occupied)
     return seats_matrix
 
@@ -303,17 +313,17 @@ def get_order(order_id:Union[str, int], email: str):
 
 def check_login(email: str, password: str):
     q_find = select("Customers",
-                    where=f"Customers.Email={email} AND Customers.Password={password}")
+                    where=f"Customers.Email='{email}' AND Customers.UserPassword='{password}'")
     return len(q_find) > 0
 
 def check_admin_login(admin_id: Union[str, int], password: str):
     q_find = select("Managers",
-                    where=f"Managers.ManagerID={admin_id} AND Managers.Password={password}")
+                    where=f"Managers.ManagerID={admin_id} AND Managers.UserPassword='{password}'")
     return len(q_find) > 0
 
-def customer_exists(email: str):
+def assigned_customer_exists(email: str):
     q_find = select("Customers",
-                    where=f"Customers.Email={email}")
+                    where=f"Customers.Email='{email}'")
     return len(q_find) > 0
 
 def delete_flight(flight_id: Union[str, int]):
