@@ -48,13 +48,15 @@ def insert_phones(email: str, phones: List[str], is_signed_up: bool = True):
         else:
             insert(table_name, {"Email": email, "Phone": phone})
 
-def insert_order(order_id: Union[str, int],
-                 email : str,
+def insert_order(email : str,
                  plain_id: Union[str, int],
                  class_type: str,
                  flight_id: Union[str, int],
                  is_signed_up: bool = True):
-    insert("CustomerOrders" if is_signed_up else "GuestOrders",
+    table_name = "CustomerOrders" if is_signed_up else "GuestOrders"
+    last_id = select(table_name, ["MAX(OrderID) AS MaxId"])[0]["MaxId"]
+    order_id = last_id + 1
+    insert(table_name,
            {
                "OrderId": order_id,
                "Email": email,
@@ -64,6 +66,7 @@ def insert_order(order_id: Union[str, int],
                "OrderStatus": "Done",
                "OrderDate": datetime.today()
            })
+    return order_id
 
 def insert_order_seats(order_seats: List[Dict[str, Union[str, int]]], is_signed_up: bool = True):
     for order_seat in order_seats:
@@ -85,11 +88,12 @@ def insert_classes(classes: List[Dict[str, Union[str, int]]]):
     for cls in classes:
         insert("Class", cls)
 
-def insert_flight(flight_id: Union[str, int],
-                  plain_id: Union[str, int],
+def insert_flight(plain_id: Union[str, int],
                   take_off_time: datetime,
                   source_field: str,
                   destination_field: str):
+    last_id = select("Flights", ["MAX(FlightID) AS MaxId"])[0]["MaxId"]
+    flight_id = last_id + 1
     insert("Flights",
            {
                "FlightID": flight_id,
@@ -99,6 +103,8 @@ def insert_flight(flight_id: Union[str, int],
                "TakeOffTime": take_off_time,
                "IsDeleted": "0"
            })
+    return flight_id
+
 
 def insert_flight_prices(prices: List[Dict[str, Union[str, int]]]):
     for price in prices:
