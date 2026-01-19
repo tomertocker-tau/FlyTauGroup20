@@ -349,11 +349,11 @@ def assigned_customer_exists(email: str):
     return len(q_find) > 0
 
 def delete_flight(flight_id: Union[str, int]):
-    update("Flights", {"IsDeleted": "1"},
+    update("Flights", {"IsDeleted": "BINARY(1)"},
            where=f"Flights.FlightID={flight_id}")
-    update("CustomerOrders", {"OrderStatus":"System_Cancelled"},
+    update("CustomerOrders", {"OrderStatus":"'System_Cancelled'"},
            where=f"CustomerOrders.FlightID={flight_id}")
-    update("GuestOrders", {"OrderStatus":"System_Cancelled"},
+    update("GuestOrders", {"OrderStatus":"'System_Cancelled'"},
            where=f"GuestOrders.FlightID={flight_id}")
 
 def get_flight_category(source_field: str, destination_field: str):
