@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 import mysql.connector
-from typing import Union, Dict, List, Tuple
+from typing import Union, Dict, List, Tuple, Any
 
 @contextmanager
 def db_cur():
@@ -24,10 +24,11 @@ def db_cur():
         if mydb:
             mydb.close()
 
-def insert(table_name: str, data: Dict[str,str]):
+def insert(table_name: str, data: Dict[str,Any]):
     with db_cur() as cursor:
-        cursor.execute(f"INSERT INTO {table_name}({', '.join(data.keys())}) "
-                     f"VALUES({', '.join(data.keys())})")
+        keys = [k for k in data.keys()]
+        cursor.execute(f"INSERT INTO {table_name} ({', '.join(keys)}) "
+                     f"VALUES({', '.join([str(data[k]) for k in keys])})")
 
 def delete(table_name: str, where: str):
     with db_cur() as cursor:
