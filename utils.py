@@ -156,6 +156,14 @@ def insert_pilot(pilot_id: Union[str, int],
                "Qualified4LongFlights": f"BINARY({qualified4long_flights})"
            })
 
+def insert_working_attendants(flight_id: Union[str, int], attendant_ids: List[Union[str, int]]):
+    for attendant_id in attendant_ids:
+        insert("WorkingFlightAttendants",{"FlightID": flight_id, "AttendantID": attendant_id})
+
+def insert_working_pilots(flight_id: Union[str, int], pilot_ids: List[Union[str, int]]):
+    for pilot_id in pilot_ids:
+        insert("WorkingFlightPilots", {"FlightID": flight_id, "PilotID": pilot_id})
+
 
 def get_all_fields(to_field: str = None):
     if to_field:
