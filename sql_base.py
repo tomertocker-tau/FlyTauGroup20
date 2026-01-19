@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 import mysql.connector
-from typing import Union, Dict, List, Tuple
+from typing import Union, Dict, List, Tuple, Any
 
 @contextmanager
 def db_cur():
@@ -24,10 +24,11 @@ def db_cur():
         if mydb:
             mydb.close()
 
-def insert(table_name: str, data: Dict[str,str]):
+def insert(table_name: str, data: Dict[str,Any]):
     with db_cur() as cursor:
-        cursor.execute(f"INSERT INTO {table_name}({', '.join(data.keys())}) "
-                     f"VALUES({', '.join(data.keys())})")
+        keys = [k for k in data.keys()]
+        cursor.execute(f"INSERT INTO {table_name} ({', '.join(keys)}) "
+                     f"VALUES({', '.join([str(data[k]) for k in keys])})")
 
 def delete(table_name: str, where: str):
     with db_cur() as cursor:
@@ -50,9 +51,11 @@ def select(table_name: str,
            having: str = None,
            cases: Dict[str,str]=None,
            join: Tuple[str, List[str]]=None,
-           side_join: str=None):
+           side_join: str=None,
+           order_by: List[str] = None,
+           order_type: str = ""):
     with db_cur() as cursor:
-        query = get_select_query(table_name, columns, where, group_by, having, cases, join, side_join)
+        query = get_select_query(table_name, columns, where, group_by, having, cases, join, side_join, order_by, order_type)
         cursor.execute(query)
     return cursor.fetchall()
 
@@ -63,7 +66,9 @@ def get_select_query(table_name: str,
                      having: str=None,
                      cases: Dict[str,str]=None,
                      join : Tuple[str,List[str]] = None,
-                     side_join: str = ""):
+                     side_join: str = "",
+                     order_by: List[str] = None,
+                     order_type: str = ""):
     if not columns:
         query = "SELECT "
         if cases:
@@ -110,4 +115,7 @@ def get_select_query(table_name: str,
         query += f" GROUP BY {','.join(group_by)}"
         if having:
             query += f" HAVING {having}"
+    if order_by:
+        query += f" ORDER BY {', '.join(order_by)}"
+        query += f" {order_type}"
     return query
