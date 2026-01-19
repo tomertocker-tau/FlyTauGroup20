@@ -1,0 +1,361 @@
+{% extends "layout.html" %}
+
+{% block title %}Flight Management | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-plane"></i> Flight Management</h1>
+        <p>Manage and monitor all flights in the system</p>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-container">
+        <form action="{{ url_for('manager_flight_table') }}" method="POST" class="filter-form">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label for="source_filter"><i class="fas fa-plane-departure"></i> Source</label>
+                    <select id="source_filter" name="source_filter" class="form-control">
+                        <option value="">All Sources</option>
+                        {% if sources %}
+                            {% for source in sources %}
+                            <option value="{{ source }}" {{ 'selected' if source_filter == source else '' }}>
+                                {{ source }}
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="destination_filter"><i class="fas fa-plane-arrival"></i> Destination</label>
+                    <select id="destination_filter" name="destination_filter" class="form-control">
+                        <option value="">All Destinations</option>
+                        {% if destinations %}
+                            {% for destination in destinations %}
+                            <option value="{{ destination }}" {{ 'selected' if destination_filter == destination else '' }}>
+                                {{ destination }}
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="flight_number"><i class="fas fa-hashtag"></i> Flight Number</label>
+                    <input type="text" id="flight_number" name="flight_number"
+                           value="{{ flight_number_filter or '' }}"
+                           placeholder="Enter flight ID" class="form-control">
+                </div>
+
+                <div class="filter-group">
+                    <label for="status_filter"><i class="fas fa-info-circle"></i> Flight Status</label>
+                    <select id="status_filter" name="status_filter" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="active" {{ 'selected' if status_filter == 'active' else '' }}>
+                            Active
+                        </option>
+                        <option value="full_capacity" {{ 'selected' if status_filter == 'full_capacity' else '' }}>
+                            Full Capacity
+                        </option>
+                        <option value="complete" {{ 'selected' if status_filter == 'complete' else '' }}>
+                            Complete
+                        </option>
+                        <option value="cancelled" {{ 'selected' if status_filter == 'cancelled' else '' }}>
+                            Cancelled
+                        </option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="month_filter"><i class="fas fa-calendar"></i> Month</label>
+                    <input type="month" id="month_filter" name="month_filter"
+                           value="{{ month_filter or '' }}" class="form-control">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary filter-btn">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <a href="{{ url_for('manager_flight_table') }}" class="btn btn-secondary">
+                        <i class="fas fa-refresh"></i> Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Flights Table -->
+    <div class="table-container">
+        {% if flights %}
+        <div class="table-header">
+            <h3>Flight Results ({{ flights|length }} flights found)</h3>
+            <a href="{{ url_for('add_flight_step1') }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Add New Flight
+            </a>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="flights-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-hashtag"></i> Flight ID</th>
+                        <th><i class="fas fa-plane-departure"></i> Route</th>
+                        <th><i class="fas fa-calendar-alt"></i> Departure</th>
+                        <th><i class="fas fa-plane"></i> Aircraft</th>
+                        <th><i class="fas fa-info-circle"></i> Status</th>
+                        <th><i class="fas fa-users"></i> Capacity</th>
+                        <th><i class="fas fa-cog"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for flight in flights %}
+                    <tr class="flight-row {{ 'cancelled' if flight.IsDeleted == 1 else '' }}">
+                        <td class="flight-id">{{ flight.FlightID }}</td>
+                        <td class="route">
+                            <strong>{{ flight.SourceField }}</strong>
+                            <i class="fas fa-arrow-right"></i>
+                            <strong>{{ flight.DestinationField }}</strong>
+                        </td>
+                        <td class="datetime">{{ flight.TakeOffTime|datetime('%d/%m/%Y %H:%M') }}</td>
+                        <td class="aircraft">{{ flight.PlainID }}</td>
+                        <td class="status">
+                            {% if flight.IsDeleted == 1 %}
+                                <span class="status-badge cancelled">Cancelled</span>
+                            {% else %}
+                                <span class="status-badge active">Active</span>
+                            {% endif %}
+                        </td>
+                        <td class="capacity">
+                            <span class="capacity-info">{{ flight.BookedSeats or 0 }}/{{ flight.TotalSeats or '--' }}</span>
+                        </td>
+                        <td class="actions">
+                            {% if flight.can_cancel %}
+                            <a href="{{ url_for('delete_flight_route', flight_id=flight.FlightID) }}"
+                               class="btn btn-danger btn-small action-btn">
+                                <i class="fas fa-ban"></i> Cancel
+                            </a>
+                            {% else %}
+                            <span class="text-muted">Cannot Cancel</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-results">
+            <i class="fas fa-search"></i>
+            <h3>No flights found</h3>
+            <p>Try adjusting your filter criteria or add a new flight.</p>
+            <a href="{{ url_for('add_flight_step1') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Flight
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Filter Section */
+.filter-container {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    margin-bottom: var(--space-xl);
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid var(--primary-color);
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-lg);
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: var(--space-sm);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.filter-actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    background: var(--blue-gradient);
+    min-width: 100px;
+}
+
+/* Table Section */
+.table-container {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-xl);
+    background: var(--primary-lighter);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.table-header h3 {
+    color: var(--primary-color);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.flights-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.flights-table th {
+    background: var(--primary-color);
+    color: var(--text-light);
+    padding: var(--space-md);
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.flights-table td {
+    padding: var(--space-md);
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+
+.flight-row:hover {
+    background: var(--primary-lighter);
+}
+
+.flight-row.cancelled {
+    background: #fef2f2;
+    opacity: 0.8;
+}
+
+.flight-row.cancelled:hover {
+    background: #fee2e2;
+}
+
+.flight-id {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.route {
+    font-weight: 500;
+}
+
+.route i {
+    color: var(--text-muted);
+    margin: 0 var(--space-xs);
+}
+
+.status-badge {
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.capacity-info {
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.action-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+}
+
+.no-results {
+    text-align: center;
+    padding: var(--space-3xl);
+    color: var(--text-muted);
+}
+
+.no-results i {
+    font-size: 4rem;
+    margin-bottom: var(--space-lg);
+    color: var(--text-muted);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .table-header {
+        flex-direction: column;
+        gap: var(--space-md);
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: var(--space-md);
+    }
+
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        grid-column: 1;
+        justify-content: center;
+    }
+
+    .flights-table {
+        font-size: 0.8rem;
+    }
+
+    .flights-table th,
+    .flights-table td {
+        padding: var(--space-sm);
+    }
+}
+</style>
+{% endblock %}

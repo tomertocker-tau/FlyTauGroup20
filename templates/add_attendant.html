@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Flight Attendant | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Add New Flight Attendant</h1>
+        <p>Enter flight attendant details</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_attendant') }}" class="employee-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="attendant_id">ID Number</label>
+                <input type="text" id="attendant_id" name="attendant_id" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" name="city" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="street">Street</label>
+                <input type="text" id="street" name="street" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="home_number">Home Number</label>
+                <input type="number" id="home_number" name="home_number" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="job_start_day">Job Start Date</label>
+                <input type="date" id="job_start_day" name="job_start_day" required class="form-control">
+            </div>
+
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="qualified_long" value="yes">
+                    <span class="checkmark"></span>
+                    Qualified for Long Flights
+                </label>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success btn-large">
+                <i class="fas fa-plus"></i> Add Flight Attendant
+            </button>
+            <a href="{{ url_for('managers_page') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

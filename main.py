@@ -376,7 +376,10 @@ def add_flight_step1():
         session['flight_data'] = {
             'source_field': source_field,
             'destination_field': destination_field,
+            'takeoff_date': takeoff_date,  # שמירה נפרדת
+            'takeoff_time': takeoff_time,  # שמירה נפרדת
             'takeoff_datetime': f"{takeoff_date} {takeoff_time}",
+            'flight_category': flight_category,
             'is_long_flight': flight_category == 'Long'
         }
 
@@ -396,7 +399,8 @@ def add_flight_step2():
         return redirect(url_for('add_flight_step1'))
 
     if request.method == 'POST':
-        selected_plane = request.form.get('selected_plane')
+        # תיקון: קריאה לשדה הנכון מהHTML
+        selected_plane = request.form.get('plane_id')  # במקום 'PlainID'
         session['flight_data']['selected_plane'] = selected_plane
         return redirect(url_for('add_flight_step3'))
 
@@ -428,83 +432,165 @@ def add_flight_step3():
         return redirect(url_for('add_flight_step1'))
 
     if request.method == 'POST':
+        # תיקון: קבלת מחירים בצורה דינמית
+        pricing = {}
+        for key, value in request.form.items():
+            if key.startswith('price_') and value:
+                class_name = key.replace('price_', '')
+                pricing[class_name] = float(value)
+
         session['flight_data'].update({
             'selected_pilots': request.form.getlist('pilots'),
             'selected_attendants': request.form.getlist('attendants'),
-            'regular_price': request.form.get('regular_price'),
-            'business_price': request.form.get('business_price')
+            'pricing': pricing
         })
 
-        return redirect(url_for('add_flight_confirmation'))
+        # תיקון: מעבר לשלב 4 הנכון
+        return redirect(url_for('add_flight_step4'))
 
     takeoff_datetime = datetime.strptime(session['flight_data']['takeoff_datetime'], '%Y-%m-%d %H:%M')
-    is_long_flight = session['flight_data']['is_long_flight']
     landing_datetime = takeoff_datetime + timedelta(hours=8)
     source_field = session['flight_data']['source_field']
+    destination_field = session['flight_data']['destination_field']
 
-    available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field,
-                                            is_long_flight=session['flight_data']['is_long_flight'])
-    available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field,
-                                                    is_long_flight=session['flight_data']['is_long_flight'])
+    # תיקון: שימוש בנתון שכבר יש לנו
+    is_long_flight = session['flight_data']['is_long_flight']
+
+    available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field, is_long_flight)
+    available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field, is_long_flight)
+
+    # קבלת מחלקות המטוס
+    selected_plane_id = session['flight_data'].get('selected_plane')
+    classes = []
+    if selected_plane_id:
+        # הנחה שיש לך פונקציה לקבלת מחלקות המטוס
+        classes = [{'ClassName': 'Economy'}, {'ClassName': 'Business'}]  # או פונקציה מתאימה
+
+    # תיקון: הוספת required_pilots ו-required_attendants
+    plane_size = 'Large' if is_long_flight else 'Small'  # או לוגיקה מתאימה
+    required_pilots = 3 if plane_size == 'Large' else 2
+    required_attendants = 6 if plane_size == 'Large' else 3
 
     return render_template("add_flight_step3.html",
                            pilots=available_pilots,
                            attendants=available_attendants,
+                           classes=classes,
+                           required_pilots=required_pilots,
+                           required_attendants=required_attendants,
                            flight_data=session['flight_data'])
 
 
-@app.route('/add_flight_confirmation', methods=['GET', 'POST'])
-def add_flight_confirmation():
+@app.route('/add_flight_step4', methods=['GET', 'POST'])
+def add_flight_step4():
     if 'ID' not in session or session.get('user_type') != 'manager':
         return redirect(url_for('login_admin'))
 
     if 'flight_data' not in session:
         return redirect(url_for('add_flight_step1'))
 
+    flight_data = session['flight_data']
+
+    # שחזור המידע המלא
+    takeoff_datetime = datetime.strptime(flight_data['takeoff_datetime'], '%Y-%m-%d %H:%M')
+    landing_datetime = takeoff_datetime + timedelta(hours=8)
+
+    # מציאת המטוס הנבחר
+    all_available_planes = find_available_plains(
+        take_off_time=takeoff_datetime,
+        landing_time=landing_datetime,
+        source_field=flight_data['source_field'],
+        is_long_flight=flight_data['is_long_flight']
+    )
+
+    selected_plane = None
+    target_id = str(flight_data['selected_plane'])
+
+    if all_available_planes:
+        for plane in all_available_planes:
+            if str(plane['PlaneID']) == target_id:
+                selected_plane = plane
+                break
+
+    # מציאת הצוות הנבחר
+    available_pilots = get_available_pilots(
+        takeoff_datetime,
+        landing_datetime,
+        flight_data['source_field'],
+        flight_data['is_long_flight']
+    )
+
+    available_attendants = get_available_attendants(
+        takeoff_datetime,
+        landing_datetime,
+        flight_data['source_field'],
+        flight_data['is_long_flight']
+    )
+
+    selected_pilot_ids = flight_data.get('selected_pilots', [])
+    selected_pilots = [p for p in available_pilots if str(p['PilotID']) in selected_pilot_ids]
+
+    selected_attendant_ids = flight_data.get('selected_attendants', [])
+    selected_attendants = [a for a in available_attendants if str(a['FlightAttendantID']) in selected_attendant_ids]
+
     if request.method == 'POST':
         try:
-            flight_data = session['flight_data']
-
+            # יצירת הטיסה
             insert_flight(
                 plain_id=flight_data['selected_plane'],
-                take_off_time=datetime.strptime(flight_data['takeoff_datetime'], '%Y-%m-%d %H:%M'),
+                take_off_time=takeoff_datetime,
                 source_field=flight_data['source_field'],
                 destination_field=flight_data['destination_field']
             )
 
-            prices = [{
-                'PlainID': flight_data['selected_plane'],
-                'ClassType': 'Regular',
-                'Price': float(flight_data['regular_price'])
-            }]
-
-            if flight_data.get('business_price'):
-                prices.append({
+            # הוספת מחירים
+            pricing = flight_data.get('pricing', {})
+            prices_to_insert = []
+            for class_name, price in pricing.items():
+                prices_to_insert.append({
                     'PlainID': flight_data['selected_plane'],
-                    'ClassType': 'Business',
-                    'Price': float(flight_data['business_price'])
+                    'ClassType': class_name,
+                    'Price': float(price)
                 })
 
-            insert_flight_prices(prices)
+            if prices_to_insert:
+                insert_flight_prices(prices_to_insert)
 
             session.pop('flight_data', None)
-            flash(f'Flight {new_flight_id} added successfully!', 'success')
+            flash('Flight added successfully!', 'success')
             return redirect(url_for('manager_flight_table'))
 
         except Exception as e:
             flash(f'Error adding flight: {str(e)}', 'error')
 
-    return render_template("add_flight_confirmation.html",
-                           flight_data=session['flight_data'])
+    # העברת המשתנים לHTML
+    return render_template("add_flight_step4.html",
+                           flight_data=flight_data,
+                           selected_plane=selected_plane,
+                           selected_pilots=selected_pilots,
+                           selected_attendants=selected_attendants,
+                           pricing=flight_data.get('pricing', {}),
+                           source_field=flight_data['source_field'],
+                           destination_field=flight_data['destination_field'],
+                           takeoff_date=flight_data['takeoff_date'],
+                           takeoff_time=flight_data['takeoff_time'],
+                           flight_category=flight_data['flight_category'])
 
-
-@app.route('/Manager_Flight_Table')
+@app.route('/manager_flight_table', methods=['GET', 'POST'])
 def manager_flight_table():
+
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
         return redirect(url_for('login_admin'))
 
+    filters = {}
+    if request.method == 'POST':
+        filters['source'] = request.form.get('source_filter')
+        filters['destination'] = request.form.get('destination_filter')
+        filters['flight_id'] = request.form.get('flight_number')
+        filters['status'] = request.form.get('status_filter')
+
     flights = find_flights_by()
+
 
     for flight in flights:
         flight_time = flight['TakeOffTime']
@@ -518,8 +604,7 @@ def manager_flight_table():
                 time_diff > timedelta(hours=72) and
                 flight.get('IsDeleted', 0) == 0
         )
-
-    return render_template("Manager_Flight_Table.html", flights=flights)
+    return render_template("manager_flight_table.html", flights=flights)
 
 
 @app.route('/delete_flight/<flight_id>')

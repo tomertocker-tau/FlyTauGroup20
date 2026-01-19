@@ -153,61 +153,160 @@ def get_all_fields(except_for: str = None):
     return ["TLV Tel Aviv", "AMS - Amsterdam","FRA - Frankfurt","ATH - Athens"]
 
 
-def find_flights_by(flight_id:Union[str,int] = None,
+from datetime import datetime, timedelta
+from typing import Union, List, Dict, Any
+
+
+def find_flights_by(flight_id: Union[str, int] = None,
                     source_field: str = None,
                     destination_field: str = None,
                     take_off_time: datetime = None,
-                    before_time : datetime = None,
+                    before_time: datetime = None,
                     after_time: datetime = None,
                     status: str = None,
                     num_seats: int = None):
-    columns = ["Flights.FlightID",
-               "Flights.SourceField",
-               "Flights.DestinationField",
-               "Flights.TakeOffTime",
-               "Flights.PlainID"]
-    conditions = []
-    if flight_id:
-        conditions.append(f"Flights.FlightID = {flight_id}")
-    if status:
-        conditions.append(f"F.Status = '{status}'")
-    if source_field:
-        conditions.append(f"Flights.SourceField LIKE '%{source_field}%'")
-    if destination_field:
-        conditions.append(f"Flights.DestinationField LIKE '%{destination_field}%'")
-    if take_off_time:
-        conditions.append(f"Flights.TakeOffTime='{take_off_time.__str__().split('.')[0]}'")
-    if before_time:
-        conditions.append(f"Flights.TakeOffTime<'{before_time.__str__().split('.')[0]}'")
-    if after_time:
-        conditions.append(f"Flights.TakeOffTime>'{after_time.__str__().split('.')[0]}'")
-    if num_seats:
-        pass
-    else:
-        num_seats = 0
-    prices_subquery = table_class_prices_query(num_seats)
-    status_subquery = flight_status_query()
-    classes = [cls["ClassType"] for cls in select("Class",
-                                                  ["ClassType"],
-                                                  group_by=["ClassType"])]
-    joint_subquery = get_select_query(f"({status_subquery}) AS FStatus",
-                                      ["FStatus.FlightID", "FStatus.FlightStatus"]+[f"FPrices.{cls}_price" for cls in classes],
-                                      join=(f"({prices_subquery}) AS FPrices", ["FlightID"]))
-    allquery = get_select_query("Flights",
-                                columns + ["F.FlightStatus"]+[f"F.{cls}_price" for cls in classes],
-                                where=" AND ".join(conditions) if len(conditions)>0 else None,
-                                join=(f"({joint_subquery}) AS F",["FlightID"]),
-                                side_join="LEFT")
-    return select(f"({allquery}) AS FF")
+    # יצירת מועד עכשיו לחישובים דינמיים
+    now = datetime.now()
 
+    # בניית המאגר הפיקטיבי עם שמות מפתחות זהים ב-100% ל-SQL המקורי
+    # שימי לב: במקום Flights.SourceField המפתח הוא פשוט SourceField (ככה זה חוזר מ-Select בדרך כלל)
+    dummy_db = [
+        {
+            "FlightID": 101,
+            "SourceField": "Tel Aviv",
+            "DestinationField": "New York",
+            "TakeOffTime": (now + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),  # מחזיר מחרוזת כמו SQL
+            "PlainID": "Boeing-787",
+            "FlightStatus": "active",
+            "Economy_price": 850,
+            "Business_price": 2000,
+            "First_price": 5000,
+            # שדות עזר שה-HTML שלך צריך (גם אם לא היו ב-Select המקורי, הם קריטיים לתצוגה)
+            "IsDeleted": 0,
+            "BookedSeats": 150,
+            "TotalSeats": 300
+        },
+        {
+            "FlightID": 102,
+            "SourceField": "London",
+            "DestinationField": "Paris",
+            "TakeOffTime": (now + timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S'),
+            "PlainID": "Airbus-A320",
+            "FlightStatus": "active",
+            "Economy_price": 120,
+            "Business_price": 400,
+            "First_price": 800,
+            "IsDeleted": 0,
+            "BookedSeats": 50,
+            "TotalSeats": 180
+        },
+        {
+            "FlightID": 103,
+            "SourceField": "Rome",
+            "DestinationField": "Tel Aviv",
+            "TakeOffTime": (now - timedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S'),
+            "PlainID": "Boeing-737",
+            "FlightStatus": "complete",
+            "Economy_price": 200,
+            "Business_price": 600,
+            "First_price": 1200,
+            "IsDeleted": 0,
+            "BookedSeats": 180,
+            "TotalSeats": 180
+        },
+        {
+            "FlightID": 105,
+            "SourceField": "Rome",
+            "DestinationField": "Tel Aviv",
+            "TakeOffTime": (now + timedelta(days=5)).strftime('%Y-%m-%d %H:%M:%S'),
+            "PlainID": "Boeing-737",
+            "FlightStatus": "avtive",
+            "Economy_price": 200,
+            "Business_price": 600,
+            "First_price": 1200,
+            "IsDeleted": 0,
+            "BookedSeats": 180,
+            "TotalSeats": 180
+        },
+        {
+            "FlightID": 104,
+            "SourceField": "Tel Aviv",
+            "DestinationField": "Berlin",
+            "TakeOffTime": (now + timedelta(days=10)).strftime('%Y-%m-%d %H:%M:%S'),
+            "PlainID": "Boeing-737",
+            "FlightStatus": "cancelled",
+            "Economy_price": 300,
+            "Business_price": 800,
+            "First_price": 1500,
+            "IsDeleted": 1,
+            "BookedSeats": 0,
+            "TotalSeats": 180
+        }
+    ]
 
-def get_available_pilots(on_time: datetime, required_qualify: bool = False):
+    # רשימת התוצאות שתחזור
+    results = []
 
-    return [{"PilotID:" : 2001}, {"PilotID:" : 2002}, {"PilotID:" : 2006}]
+    # לוגיקת הסינון (חיקוי של ה-WHERE ב-SQL)
+    for flight in dummy_db:
+        # המרה ל-datetime לצורך השוואות
+        f_time = datetime.strptime(flight["TakeOffTime"], '%Y-%m-%d %H:%M:%S')
 
-def get_available_attendants(on_time: datetime, required_qualify: bool = False):
+        # 1. סינון לפי ID
+        if flight_id is not None and str(flight["FlightID"]) != str(flight_id):
+            continue
 
+        # 2. סינון לפי סטטוס
+        if status and flight["FlightStatus"] != status:
+            continue
+
+        # 3. סינון לפי שדה מוצא (Source) - מכיל את הטקסט (LIKE)
+        if source_field and source_field.lower() not in flight["SourceField"].lower():
+            continue
+
+        # 4. סינון לפי שדה יעד (Destination) - מכיל את הטקסט (LIKE)
+        if destination_field and destination_field.lower() not in flight["DestinationField"].lower():
+            continue
+
+        # 5. סינון לפי זמן מדויק
+        if take_off_time:
+            # נשווה תאריכים בלבד כדי למנוע פספוסים בגלל שעות
+            if f_time.date() != take_off_time.date():
+                continue
+
+        # 6. סינון לפני זמן (Before)
+        if before_time and f_time >= before_time:
+            continue
+
+        # 7. סינון אחרי זמן (After)
+        if after_time and f_time <= after_time:
+            continue
+
+        # 8. סינון לפי מקום פנוי (Seats)
+        if num_seats:
+            available_seats = flight["TotalSeats"] - flight["BookedSeats"]
+            if available_seats < num_seats:
+                continue
+
+        # אם עבר את כל הסינונים - הוסף לרשימה
+        results.append(flight)
+
+    return results
+
+def get_available_pilots(take_off_time: datetime,
+                          landing_time: datetime,
+                          source_field: str,
+                          is_long_flight: bool):
+
+    return [{"PilotID:": 2001}, {"PilotID:": 2002}, {"PilotID:": 2006}]
+
+def get_available_attendants(take_off_time: datetime,
+                          landing_time: datetime,
+                          source_field: str,
+                          is_long_flight: bool):
     return [{"FlightAttendantID:": 3001}, {"FlightAttendantID:": 3002}, {"FlightAttendantID:": 3006}, {"FlightAttendantID:": 30010},{"FlightAttendantID:": 30012}]
+
+
 
 def get_available_seats(flight_id : Union[str, int], class_type: str):
 
@@ -273,11 +372,13 @@ def customer_exists(email: str):
 def delete_flight(flight_id: Union[str, int]):
     pass
 
+
 def get_flight_category(source_field: str, destination_field: str):
-    pass
+
+    return "Short"
 
 def find_available_plains(take_off_time: datetime,
                           landing_time: datetime,
                           source_field: str,
                           is_long_flight: bool):
-    return[{"PlaneID":1 , "NumClasses":2},{"PlaneID":2 , "NumClasses":2},{"PlaneID":6 , "NumClasses":1}]
+    return[{"PlaneID":1 , "Size":"Large"},{"PlaneID":2 , "Size":"Small"},{"PlaneID":3 , "Size":"Large"}]

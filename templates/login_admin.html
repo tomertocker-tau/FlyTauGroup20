@@ -1,17 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Administrator Log in</title>
-</head>
-<body>
-<h1>Dear Admin, Please Log in</h1>
-<form action="/login_admin" method="post">
-    <label for="ID">ID:</label>
-    <input type="text" id="ID" name="ID">
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password">
-    <input type="submit" value="login" class="important_button">
-</form>
-</body>
-</html>
+{% extends "layout.html" %}
+
+{% block title %}Administrator Login | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <i class="fas fa-user-shield card-icon"></i>
+            <h1>Administrator Login</h1>
+            <p>Access the management portal</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login_admin') }}" class="login-form">
+            <div class="form-group">
+                <label for="ID">Administrator ID</label>
+                <input type="text" id="ID" name="ID" required class="form-control" 
+                       placeholder="Enter your admin ID">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required class="form-control" 
+                       placeholder="Enter your password">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <a href="{{ url_for('homepagenew') }}" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

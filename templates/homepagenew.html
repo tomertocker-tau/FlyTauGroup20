@@ -1,75 +1,328 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlyTau - Homepage</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
+{% extends "layout.html" %}
 
-    <nav class="navbar">
-        <a href="/" class="logo-container">
-            <img src="{{ url_for('static', filename='images/flytau_logo.png') }}" alt="FlyTau Logo" class="logo-img">
-        </a>
+{% block title %}FLYTAU Airlines - Your Gateway to the Skies{% endblock %}
 
-        <div class="nav-buttons">
-            <button class="btn btn-login" onclick="document.location.href='/login_new'">Login</button>
-            <button class="btn btn-signup" onclick="document.location.href='/signup_new'">Signup</button>
-            <button class="btn btn-admin" onclick="document.location.href='/login_admin'">Admin Login</button>
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <!-- Welcome Text - Prominent and Centered -->
+        <div class="welcome-text">
+            <h1 class="welcome-title">Welcome to FLYTAU</h1>
+            <p class="welcome-subtitle">Your trusted partner in the skies</p>
         </div>
-    </nav>
 
-    <div class="hero-section">
-
-        <div class="search-box">
-            <h1>Welcome to FlyTau</h1>
-            <p class="subtitle">Order a Flight</p>
-
-            <div class="action-buttons">
-                <button class="option-btn" onclick="document.location.href='/manage_booking'">
-                    <i class="fas fa-edit"></i> Manage Booking
-                </button>
-                <button class="option-btn" onclick="document.location.href='/flight_table'">
-                    <i class="fas fa-list"></i> Flight Table
-                </button>
+        <!-- Search Container with Horizontal Layout -->
+        <div class="search-container">
+            <div class="search-header">
+                <h2><i class="fas fa-search"></i> Search New Flight</h2>
+                <p>Find your perfect flight and start your journey</p>
             </div>
 
-            <form action="/search_results" method="POST" class="search-form">
+            <form action="{{ url_for('flights') }}" method="POST" class="flight-search-form">
+                <!-- Horizontal Search Fields -->
+                <div class="search-row">
+                    <div class="form-group">
+                        <label for="source"><i class="fas fa-plane-departure"></i> From</label>
+                        <select id="source" name="source" required class="form-control">
+                            <option value="">Select departure city</option>
+                            <option value="Tel Aviv">Tel Aviv</option>
+                            <option value="New York">New York</option>
+                            <option value="London">London</option>
+                            <option value="Paris">Paris</option>
+                            <option value="Rome">Rome</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label for="SourceField">From (Source)</label>
-                    <input list="airports_list" id="SourceField" name="SourceField" placeholder="Type airport name..." required>
-                    <datalist id="airports_list">
-                        {% for airport in airports %}
-                        <option value="{{ airport }}">
-                        {% endfor %}
-                    </datalist>
-                </div>
+                    <div class="form-group">
+                        <label for="destination"><i class="fas fa-plane-arrival"></i> To</label>
+                        <select id="destination" name="destination" required class="form-control">
+                            <option value="">Select destination city</option>
+                            <option value="Tel Aviv">Tel Aviv</option>
+                            <option value="New York">New York</option>
+                            <option value="London">London</option>
+                            <option value="Paris">Paris</option>
+                            <option value="Rome">Rome</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label for="DestinationField">To (Destination)</label>
-                    <input list="airports_list" id="DestinationField" name="DestinationField" placeholder="Type airport name..." required>
-                </div>
+                    <div class="form-group">
+                        <label for="takeoff_date"><i class="fas fa-calendar-alt"></i> Departure Date</label>
+                        <input type="date" id="takeoff_date" name="takeoff_date" required class="form-control">
+                    </div>
 
-                <div class="form-group">
-                    <label for="TakeOffDate">Takeoff Date</label>
-                    <input type="date" id="TakeOffDate" name="TakeOffDate" required>
-                </div>
+                    <div class="form-group">
+                        <label for="passengers"><i class="fas fa-users"></i> Passengers</label>
+                        <input type="number" id="passengers" name="passengers" min="1" max="20" value="1" required class="form-control" placeholder="Number of passengers">
+                    </div>
 
-                <div class="form-group">
-                    <label for="PassengersAmount">Passengers</label>
-                    <input type="number" id="PassengersAmount" name="PassengersAmount" min="1" max="10" value="1" required>
-                </div>
-
-                <div class="form-group full-width">
-                    <button type="submit" class="submit-btn">Search Flights</button>
+                    <div class="form-group search-button-group">
+                        <button type="submit" class="btn btn-primary search-btn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
 
-    </div>
+        <!-- Quick Actions Below Search -->
+        <div class="quick-actions">
+            <div class="action-card">
+                <a href="{{ url_for('manage_order') }}" class="action-link">
+                    <i class="fas fa-edit"></i>
+                    <h3>Manage Booking</h3>
+                    <p>Check or modify your existing booking</p>
+                </a>
+            </div>
 
-</body>
-</html>
+            <div class="action-card">
+                <a href="{{ url_for('flight_board') }}" class="action-link">
+                    <i class="fas fa-plane-departure"></i>
+                    <h3>Flight Board</h3>
+                    <p>View all available flights</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section - Same Row, Smaller -->
+<div class="features-section">
+    <div class="container">
+        <div class="features-row">
+            <div class="feature-item">
+                <i class="fas fa-shield-alt"></i>
+                <h4>Safe & Secure</h4>
+                <p>Your safety is our top priority with advanced security measures</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-clock"></i>
+                <h4>On-Time Performance</h4>
+                <p>Reliable schedules with excellent on-time performance record</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-star"></i>
+                <h4>Premium Service</h4>
+                <p>Experience world-class service with our dedicated crew</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-globe"></i>
+                <h4>Global Network</h4>
+                <p>Connecting you to destinations around the world</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+.hero-section {
+    width: 100%;
+    min-height: 85vh;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 300px;
+    padding-bottom: 30px;
+    background-color: #f0f8ff;
+    background-image: url("{{ url_for('static', filename='images/sky_background.jpeg') }}");
+    background-size: cover;
+    background-position: center;
+}
+
+.hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 1rem;
+    position: relative;
+    z-index: 1; /* מוודא שהתוכן מעל הרקע */
+}
+
+.welcome-text {
+    text-align: center;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.4);
+    padding: 1rem 2rem;
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+}
+
+.welcome-title {
+    color: #004085 !important;
+    font-size: 3.5rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem !important;
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5) !important;
+}
+
+.welcome-subtitle {
+    font-size: 1.4rem !important;
+    color: #856404 !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+}
+
+.search-container {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15); /* צל חזק יותר */
+    width: 100%;
+    max-width: 1100px;
+    border: 1px solid #e0e0e0;
+}
+
+.search-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+/* שורת החיפוש */
+.search-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 160px;
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #495057;
+    font-weight: 600;
+}
+
+.search-button-group {
+    flex: 0 0 auto;
+}
+
+.search-btn {
+    height: 45px; /* מוודא גובה זהה לשדות */
+    padding: 0 2.5rem;
+    background-color: #007bff; /* כחול בולט */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.search-btn:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* --- כפתורי הפעולות המהירות --- */
+.quick-actions {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.action-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    width: 300px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid #f0f0f0;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: #007bff;
+}
+
+.action-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.action-link i {
+    font-size: 2.5rem;
+    color: #007bff;
+    margin-bottom: 1rem;
+}
+
+.action-link h3 {
+    margin: 0.5rem 0;
+    color: #333;
+}
+
+.action-link p {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* --- Features Section --- */
+.features-section {
+    background: white;
+    padding: 3rem 0;
+    margin-top: 3rem;
+    border-top: 1px solid #eee;
+}
+
+.features-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.feature-item {
+    text-align: center;
+    padding: 1rem;
+}
+
+/* --- רספונסיביות --- */
+@media (max-width: 992px) {
+    .welcome-title { font-size: 3rem !important; }
+    .hero-section { padding-top: 100px; }
+}
+
+@media (max-width: 768px) {
+    .search-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-btn { width: 100%; }
+
+    .welcome-title { font-size: 2.2rem !important; }
+
+    .quick-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+</style>
+{% endblock %}

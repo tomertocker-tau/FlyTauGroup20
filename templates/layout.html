@@ -3,46 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlyTau Airlines</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>{% block title %}FLYTAU Airlines{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-
+    <!-- Navigation Bar -->
     <nav class="navbar">
-        <a href="/" class="logo">
-            <i class="fas fa-plane-departure"></i> FLYTAU
-        </a>
+        <div class="nav-container">
+            <!-- Clickable Logo -->
+            <a href="{{ url_for('homepagenew') }}" class="logo">
+                <div class="logo-circle">
+                    <i class="fas fa-plane-departure"></i>
+                </div>
+                <span class="logo-text">FLYTAU</span>
+            </a>
 
-        <div class="nav-links">
-            {% if session.user_id or session.user_email %}
-                <span>Hello, {{ session.name }}</span>
-                {% if session.role == 'manager' %}
-                    <a href="/manager_dashboard" class="btn-nav">Dashboard</a>
-                {% else %}
-                    <a href="/customer_dashboard" class="btn-nav">My Orders</a>
+            <div class="nav-menu">
+                <!-- Dashboard Links for Different User Types -->
+                {% if session.user_type == 'customer' %}
+                    <a href="{{ url_for('users_page') }}" class="nav-link dashboard-btn">
+                        <i class="fas fa-tachometer-alt"></i> My Dashboard
+                    </a>
+                    <a href="{{ url_for('search_flights') }}" class="nav-link">
+                        <i class="fas fa-search"></i> Search Flights
+                    </a>
+                    <a href="{{ url_for('filter_history') }}" class="nav-link">
+                        <i class="fas fa-history"></i> My Orders
+                    </a>
+                {% elif session.user_type == 'manager' %}
+                    <a href="{{ url_for('managers_page') }}" class="nav-link dashboard-btn">
+                        <i class="fas fa-tachometer-alt"></i> Manager Dashboard
+                    </a>
+                    <a href="{{ url_for('manager_flight_table') }}" class="nav-link">
+                        <i class="fas fa-plane"></i> Manage Flights
+                    </a>
+                    <a href="{{ url_for('add_attendant') }}" class="nav-link">
+                        <i class="fas fa-user-plus"></i> Add Staff
+                    </a>
+                {% elif session.user_type == 'guest' %}
+                    <a href="{{ url_for('search_flights') }}" class="nav-link">
+                        <i class="fas fa-search"></i> Search Flights
+                    </a>
+                    <a href="{{ url_for('manage_order') }}" class="nav-link">
+                        <i class="fas fa-search"></i> Check Order
+                    </a>
                 {% endif %}
-                <a href="/logout" style="color: #dc3545; margin-left: 15px;">Logout</a>
-            {% else %}
-                <a href="/login_new" class="btn-outline">Customer Login</a>
-                <a href="/login_admin" class="btn-solid">Manager Portal</a>
-            {% endif %}
+
+                <!-- Welcome Message -->
+                {% if session.user_type %}
+                    <span class="user-welcome">
+                        <i class="fas fa-user-circle"></i>
+                        Welcome, {{ session.get('email', session.get('ID', 'User')) }}
+                    </span>
+                {% endif %}
+
+                <!-- Login/Logout Buttons -->
+                {% if not session.user_type %}
+                    <a href="{{ url_for('login_new') }}" class="nav-btn btn-customer">
+                        <i class="fas fa-user"></i> Customer Login
+                    </a>
+                    <a href="{{ url_for('signup_new') }}" class="nav-btn btn-signup">
+                        <i class="fas fa-user-plus"></i> Sign Up
+                    </a>
+                    <a href="{{ url_for('login_admin') }}" class="nav-btn btn-manager">
+                        <i class="fas fa-user-shield"></i> Manager Login
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('logout') }}" class="nav-btn btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </nav>
 
-    <div class="flash-messages">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
+                    <div class="flash-message flash-{{ category }}">
+                        <i class="fas fa-info-circle"></i>
                         {{ message }}
+                        <button class="close-flash" onclick="this.parentElement.remove()">×</button>
                     </div>
                 {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+            </div>
+        {% endif %}
+    {% endwith %}
 
-    {% block content %}{% endblock %}
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
 
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <div class="logo-circle small">
+                        <i class="fas fa-plane-departure"></i>
+                    </div>
+                    <div>
+                        <h4>FLYTAU Airlines</h4>
+                        <p>Your trusted partner in the skies</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h5>Quick Links</h5>
+                <a href="{{ url_for('search_flights') }}">Search Flights</a>
+                <a href="{{ url_for('flight_board') }}">Flight Board</a>
+                <a href="{{ url_for('manage_order') }}">Check Booking</a>
+            </div>
+            <div class="footer-section">
+                <h5>Contact Info</h5>
+                <p><i class="fas fa-phone"></i> 1-800-FLYTAU (359-8281)</p>
+                <p><i class="fas fa-envelope"></i> support@flytau.com</p>
+                <p><i class="fas fa-map-marker-alt"></i> Tel Aviv, Israel</p>
+            </div>
+            <div class="footer-section">
+                <h5>Follow Us</h5>
+                <div class="social-links">
+                    <i class="fab fa-facebook-f"></i>
+                    <i class="fab fa-twitter"></i>
+                    <i class="fab fa-instagram"></i>
+                    <i class="fab fa-linkedin-in"></i>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 FLYTAU Airlines. All rights reserved. | Privacy Policy | Terms of Service</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

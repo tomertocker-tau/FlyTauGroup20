@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+
+{% block title %}Add New Flight - Confirmation | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="form-header-section">
+        <h1><i class="fas fa-plus-circle"></i> Add New Flight</h1>
+        <div class="progress-bar">
+            <div class="step completed">
+                <div class="step-number">1</div>
+                <span>Flight Details</span>
+            </div>
+            <div class="step completed">
+                <div class="step-number">2</div>
+                <span>Aircraft Selection</span>
+            </div>
+            <div class="step completed">
+                <div class="step-number">3</div>
+                <span>Crew & Pricing</span>
+            </div>
+            <div class="step active">
+                <div class="step-number">4</div>
+                <span>Confirmation</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="confirmation-container">
+        <div class="confirmation-header">
+            <i class="fas fa-check-circle success-icon"></i>
+            <h2>Flight Summary</h2>
+            <p>Please review all details before creating the flight</p>
+        </div>
+
+        <div class="summary-sections">
+            <!-- Flight Details Summary -->
+            <div class="summary-card">
+                <div class="card-header">
+                    <i class="fas fa-plane"></i>
+                    <h3>Flight Information</h3>
+                </div>
+                <div class="summary-details">
+                    <div class="detail-row">
+                        <span class="label">Route:</span>
+                        <span class="value">{{ source_field }} → {{ destination_field }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Departure:</span>
+                        <span class="value">{{ takeoff_date }} at {{ takeoff_time }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Flight Type:</span>
+                        <span class="value">{{ flight_category }} Flight</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aircraft Summary -->
+            <div class="summary-card">
+                <div class="card-header">
+                    <i class="fas fa-plane-departure"></i>
+                    <h3>Selected Aircraft</h3>
+                </div>
+                <div class="summary-details">
+                    <div class="detail-row">
+                        <span class="label">Aircraft ID:</span>
+                        <span class="value">{{ selected_plane.PlainID }}</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="label">Size:</span>
+                        <span class="value">{{ selected_plane.Size }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crew Summary -->
+            <div class="summary-card">
+                <div class="card-header">
+                    <i class="fas fa-users"></i>
+                    <h3>Assigned Crew</h3>
+                </div>
+                <div class="crew-summary">
+                    <div class="crew-group">
+                        <h4><i class="fas fa-user-tie"></i> Pilots ({{ selected_pilots|length }})</h4>
+                        <div class="crew-list">
+                            {% for pilot in selected_pilots %}
+                            <div class="crew-member">
+                                <span>{{ pilot.FirstName }} {{ pilot.LastName }}</span>
+                                <small>ID: {{ pilot.ID }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="crew-group">
+                        <h4><i class="fas fa-user-friends"></i> Flight Attendants ({{ selected_attendants|length }})</h4>
+                        <div class="crew-list">
+                            {% for attendant in selected_attendants %}
+                            <div class="crew-member">
+                                <span>{{ attendant.FirstName }} {{ attendant.LastName }}</span>
+                                <small>ID: {{ attendant.ID }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Summary -->
+            <div class="summary-card">
+                <div class="card-header">
+                    <i class="fas fa-dollar-sign"></i>
+                    <h3>Ticket Pricing</h3>
+                </div>
+                <div class="pricing-summary">
+                    {% for class_name, price in pricing.items() %}
+                    <div class="price-row">
+                        <div class="class-info">
+                            <span class="class-name">{{ class_name }} Class</span>
+                        </div>
+                        <div class="price-info">
+                            <span class="price">${{ price }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% if error_message %}
+        <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ error_message }}
+        </div>
+        {% endif %}
+
+        <!-- Final Actions -->
+        <div class="form-actions confirmation-actions">
+            <form method="POST" action="{{ url_for('add_flight_step4') }}" class="create-flight-form">
+                <button type="submit" class="btn btn-success btn-large btn-create">
+                    <i class="fas fa-check"></i> Create Flight
+                </button>
+            </form>
+
+            <a href="{{ url_for('add_flight_step3') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Previous Step
+            </a>
+
+            <a href="{{ url_for('managers_page') }}" class="btn btn-outline">
+                <i class="fas fa-times"></i> Cancel & Return to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+
+{% block title %}Purchase Aircraft | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Purchase New Aircraft</h1>
+        <p>Enter aircraft details</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_plane') }}" class="aircraft-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="plane_id">Aircraft ID</label>
+                <input type="text" id="plane_id" name="plane_id" required class="form-control"
+                       placeholder="Enter unique aircraft identifier">
+            </div>
+
+            <div class="form-group">
+                <label for="manufacturer">Manufacturer</label>
+                <select id="manufacturer" name="manufacturer" required class="form-control">
+                    <option value="">Select Manufacturer</option>
+                    <option value="Boeing">Boeing</option>
+                    <option value="Airbus">Airbus</option>
+                    <option value="Dassault">Dassault</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="size">Aircraft Size</label>
+                <select id="size" name="size" required class="form-control">
+                    <option value="">Select Size</option>
+                    <option value="Large">Large (Long & Short Flights)</option>
+                    <option value="Small">Small (Short Flights Only)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="purchase_date">Purchase Date</label>
+                <input type="date" id="purchase_date" name="purchase_date" required class="form-control">
+            </div>
+        </div>
+
+        <div class="aircraft-info">
+            <h3>Aircraft Specifications</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>Large Aircraft:</strong>
+                    <ul>
+                        <li>Can operate long flights (>6 hours)</li>
+                        <li>Can operate short flights (≤6 hours)</li>
+                        <li>Has Business and Regular class</li>
+                        <li>Requires 3 pilots, 6 flight attendants</li>
+                    </ul>
+                </div>
+                <div class="info-item">
+                    <strong>Small Aircraft:</strong>
+                    <ul>
+                        <li>Can only operate short flights (≤6 hours)</li>
+                        <li>Has Regular class only</li>
+                        <li>Requires 2 pilots, 3 flight attendants</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success btn-large">
+                <i class="fas fa-plus"></i> Purchase Aircraft
+            </button>
+            <a href="{{ url_for('managers_page') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

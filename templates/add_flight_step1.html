@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+
+{% block title %}Add New Flight - Step 1 | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="form-header-section">
+        <h1><i class="fas fa-plus-circle"></i> Add New Flight</h1>
+        <div class="progress-bar">
+            <div class="step active">
+                <div class="step-number">1</div>
+                <span>Flight Details</span>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <span>Aircraft Selection</span>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <span>Crew & Pricing</span>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <span>Confirmation</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="form-header">
+            <h2>Step 1: Basic Flight Information</h2>
+            <p>Enter the basic details for the new flight</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('add_flight_step1') }}" class="flight-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="source_field"><i class="fas fa-plane-departure"></i> Source Airport</label>
+                    <select id="source_field" name="source_field" required class="form-control">
+                        <option value="">Select source airport</option>
+                        {% if airports %}
+                            {% for airport in airports %}
+                            <option value="{{ airport }}" {{ 'selected' if source_field == airport else '' }}>
+                                {{ airport }}
+                            </option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="Tel Aviv">Tel Aviv</option>
+                            <option value="New York">New York</option>
+                            <option value="London">London</option>
+                            <option value="Paris">Paris</option>
+                            <option value="Rome">Rome</option>
+                            <option value="Madrid">Madrid</option>
+                            <option value="Berlin">Berlin</option>
+                            <option value="Amsterdam">Amsterdam</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="destination_field"><i class="fas fa-plane-arrival"></i> Destination Airport</label>
+                    <select id="destination_field" name="destination_field" required class="form-control">
+                        <option value="">Select destination airport</option>
+                        {% if airports %}
+                            {% for airport in airports %}
+                            <option value="{{ airport }}" {{ 'selected' if destination_field == airport else '' }}>
+                                {{ airport }}
+                            </option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="Tel Aviv">Tel Aviv</option>
+                            <option value="New York">New York</option>
+                            <option value="London">London</option>
+                            <option value="Paris">Paris</option>
+                            <option value="Rome">Rome</option>
+                            <option value="Madrid">Madrid</option>
+                            <option value="Berlin">Berlin</option>
+                            <option value="Amsterdam">Amsterdam</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="takeoff_date"><i class="fas fa-calendar-alt"></i> Takeoff Date</label>
+                    <input type="date" id="takeoff_date" name="takeoff_date"
+                           value="{{ takeoff_date or '' }}" required class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="takeoff_time"><i class="fas fa-clock"></i> Takeoff Time</label>
+                    <input type="time" id="takeoff_time" name="takeoff_time"
+                           value="{{ takeoff_time or '' }}" required class="form-control">
+                </div>
+            </div>
+
+            {% if error_message %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                {{ error_message }}
+            </div>
+            {% endif %}
+
+            {% if flight_category %}
+            <div class="flight-info-card">
+                <div class="info-header">
+                    <i class="fas fa-info-circle"></i>
+                    <h3>Flight Category Determined</h3>
+                </div>
+                <div class="category-badge {{ flight_category.lower() }}">
+                    <i class="fas fa-{{ 'globe' if flight_category == 'Long' else 'map-marker' }}"></i>
+                    {{ flight_category }} Flight
+                </div>
+                <p class="category-description">
+                    {% if flight_category == 'Long' %}
+                        This flight is classified as a long-haul flight (over 6 hours).
+                        It will require a large aircraft and qualified crew for international operations.
+                    {% else %}
+                        This flight is classified as a short-haul flight (under 6 hours).
+                        It can be operated by both small and large aircraft.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-arrow-right"></i> Continue to Aircraft Selection
+                </button>
+                <a href="{{ url_for('managers_page') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

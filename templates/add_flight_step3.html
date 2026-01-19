@@ -1,0 +1,163 @@
+{% extends "layout.html" %}
+
+{% block title %}Add New Flight - Step 3 | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="form-header-section">
+        <h1><i class="fas fa-plus-circle"></i> Add New Flight</h1>
+        <div class="progress-bar">
+            <div class="step completed">
+                <div class="step-number">1</div>
+                <span>Flight Details</span>
+            </div>
+            <div class="step completed">
+                <div class="step-number">2</div>
+                <span>Aircraft Selection</span>
+            </div>
+            <div class="step active">
+                <div class="step-number">3</div>
+                <span>Crew & Pricing</span>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <span>Confirmation</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="form-header">
+            <h2>Step 3: Assign Crew & Set Pricing</h2>
+            <p>Select qualified crew members and set ticket prices</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('add_flight_step3') }}" class="crew-pricing-form">
+
+            <!-- Crew Assignment Section -->
+            <div class="crew-assignment">
+                <div class="crew-section">
+                    <div class="crew-header">
+                        <i class="fas fa-user-tie"></i>
+                        <h3>Select Pilots ({{ required_pilots }} required)</h3>
+                    </div>
+
+                    {% if pilots %}
+                    <div class="crew-grid">
+                        {% for pilot in pilots %}
+                        <div class="crew-card">
+                            <input type="checkbox" id="pilot_{{ pilot.ID }}" name="pilots"
+                                   value="{{ pilot.ID }}" class="crew-checkbox">
+                            <label for="pilot_{{ pilot.ID }}" class="crew-label">
+                                <div class="crew-avatar">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <div class="crew-info">
+                                    <h4>{{ pilot.FirstName }} {{ pilot.LastName }}</h4>
+                                    <p>ID: {{ pilot.ID }}</p>
+                                    {% if pilot.Qualified4LongFlights %}
+                                    <div class="qualification-badge">
+                                        <i class="fas fa-globe"></i> Long Flight Qualified
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="no-crew">
+                        <i class="fas fa-user-slash"></i>
+                        <p>No available pilots found</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="crew-section">
+                    <div class="crew-header">
+                        <i class="fas fa-user-friends"></i>
+                        <h3>Select Flight Attendants ({{ required_attendants }} required)</h3>
+                    </div>
+
+                    {% if attendants %}
+                    <div class="crew-grid">
+                        {% for attendant in attendants %}
+                        <div class="crew-card">
+                            <input type="checkbox" id="attendant_{{ attendant.ID }}" name="attendants"
+                                   value="{{ attendant.ID }}" class="crew-checkbox">
+                            <label for="attendant_{{ attendant.ID }}" class="crew-label">
+                                <div class="crew-avatar">
+                                    <i class="fas fa-user-friends"></i>
+                                </div>
+                                <div class="crew-info">
+                                    <h4>{{ attendant.FirstName }} {{ attendant.LastName }}</h4>
+                                    <p>ID: {{ attendant.ID }}</p>
+                                    {% if attendant.Qualified4LongFlights %}
+                                    <div class="qualification-badge">
+                                        <i class="fas fa-globe"></i> Long Flight Qualified
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="no-crew">
+                        <i class="fas fa-user-slash"></i>
+                        <p>No available flight attendants found</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pricing Section -->
+            <div class="pricing-section">
+                <div class="pricing-header">
+                    <i class="fas fa-dollar-sign"></i>
+                    <h3>Set Ticket Prices</h3>
+                </div>
+
+                {% if classes %}
+                <div class="pricing-grid">
+                    {% for class_info in classes %}
+                    <div class="price-card">
+                        <div class="class-header">
+                            <i class="fas fa-{{ 'crown' if class_info.ClassName == 'Business' else 'chair' }}"></i>
+                            <h4>{{ class_info.ClassName }} Class</h4>
+                        </div>
+                        <div class="price-input-group">
+                            <label for="price_{{ class_info.ClassName }}">Price per ticket ($)</label>
+                            <input type="number" id="price_{{ class_info.ClassName }}"
+                                   name="price_{{ class_info.ClassName }}"
+                                   step="0.01" min="1" required class="form-control price-input"
+                                   placeholder="Enter price">
+                        </div>
+                        <div class="class-info">
+                            <small>Available seats in this class</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if error_message %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                {{ error_message }}
+            </div>
+            {% endif %}
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-arrow-right"></i> Continue to Confirmation
+                </button>
+                <a href="{{ url_for('add_flight_step2') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Aircraft Selection
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

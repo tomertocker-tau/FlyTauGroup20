@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% block title %}Manager Dashboard | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Manager Dashboard</h1>
+        <p>Welcome to the FLYTAU management portal</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Flight Management Section -->
+        <div class="dashboard-section">
+            <h2>Flight Management</h2>
+
+            <div class="action-cards">
+                <div class="mgmt-card">
+                    <a href="{{ url_for('manager_flight_table') }}" class="mgmt-link">
+                        <i class="fas fa-plane"></i>
+                        <h3>Manage Flights</h3>
+                        <p>View and manage all flights</p>
+                    </a>
+                </div>
+
+                <div class="mgmt-card">
+                    <a href="{{ url_for('add_flight_step1') }}" class="mgmt-link">
+                        <i class="fas fa-plus-circle"></i>
+                        <h3>Add Flight</h3>
+                        <p>Create new flight schedule</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personnel Management Section -->
+        <div class="dashboard-section">
+            <h2>Personnel Management</h2>
+
+            <div class="action-cards">
+                <div class="mgmt-card">
+                    <a href="{{ url_for('add_pilot') }}" class="mgmt-link">
+                        <i class="fas fa-user-tie"></i>
+                        <h3>Add Pilot</h3>
+                        <p>Register new pilot</p>
+                    </a>
+                </div>
+
+                <div class="mgmt-card">
+                    <a href="{{ url_for('add_attendant') }}" class="mgmt-link">
+                        <i class="fas fa-user-friends"></i>
+                        <h3>Add Flight Attendant</h3>
+                        <p>Register new flight attendant</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fleet Management Section -->
+        <div class="dashboard-section">
+            <h2>Fleet Management</h2>
+
+            <div class="action-cards">
+                <div class="mgmt-card">
+                    <a href="{{ url_for('add_plane') }}" class="mgmt-link">
+                        <i class="fas fa-plane-departure"></i>
+                        <h3>Purchase Aircraft</h3>
+                        <p>Add new aircraft to fleet</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="stats-section">
+        <h2>Quick Overview</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-plane"></i>
+                <div class="stat-info">
+                    <h3>Total Flights</h3>
+                    <p class="stat-number">{{ total_flights | default('--') }}</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <div class="stat-info">
+                    <h3>Active Crew</h3>
+                    <p class="stat-number">{{ active_crew | default('--') }}</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <i class="fas fa-plane-departure"></i>
+                <div class="stat-info">
+                    <h3>Aircraft Fleet</h3>
+                    <p class="stat-number">{{ aircraft_count | default('--') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

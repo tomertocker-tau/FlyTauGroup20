@@ -1,0 +1,195 @@
+{% extends "layout.html" %}
+
+{% block title %}Cancel Flight Confirmation | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="confirmation-card warning-card">
+        <div class="confirmation-header">
+            <i class="fas fa-exclamation-triangle warning-icon"></i>
+            <h2 class="warning-title">Cancel Flight Confirmation</h2>
+            <p class="flight-id">Flight ID: {{ flight.FlightID }}</p>
+        </div>
+
+        <div class="flight-details">
+            <div class="detail-row">
+                <span class="label">Route:</span>
+                <span class="value">{{ flight.SourceField }} → {{ flight.DestinationField }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Departure:</span>
+                <span class="value">{{ flight.TakeOffTime }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Aircraft:</span>
+                <span class="value">{{ flight.PlainID }}</span>
+            </div>
+        </div>
+
+        <div class="cancellation-warning">
+            <div class="warning-box">
+                <h3>⚠️ Warning: This action cannot be undone!</h3>
+                <p>Canceling this flight will:</p>
+                <ul>
+                    <li>Cancel all passenger bookings on this flight</li>
+                    <li>Notify all affected passengers</li>
+                    <li>Make the aircraft and crew available for other assignments</li>
+                    <li>This action is permanent and cannot be reversed</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <form action="{{ url_for('confirm_cancel_flight', flight_id=flight.FlightID) }}" method="POST" class="cancel-form">
+                <button type="submit" class="btn btn-danger btn-large btn-full-width" onclick="return confirm('Are you absolutely sure you want to cancel this flight?')">
+                    <i class="fas fa-ban"></i> Yes, Cancel Flight
+                </button>
+            </form>
+
+            <div class="button-spacing"></div>
+
+            <a href="{{ url_for('manager_flight_table') }}" class="btn btn-secondary btn-large btn-full-width">
+                <i class="fas fa-arrow-left"></i> Go Back (Don't Cancel)
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-container {
+    max-width: 600px;
+    margin: var(--space-xl) auto;
+    padding: var(--space-lg);
+}
+
+.confirmation-card {
+    background: var(--white);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-3xl);
+    box-shadow: var(--shadow-xl);
+    border-top: 5px solid var(--danger);
+}
+
+.confirmation-header {
+    text-align: center;
+    margin-bottom: var(--space-2xl);
+    padding-bottom: var(--space-xl);
+    border-bottom: 2px solid #fee2e2;
+}
+
+.warning-icon {
+    font-size: 4rem;
+    color: var(--danger);
+    margin-bottom: var(--space-lg);
+}
+
+.warning-title {
+    color: var(--danger);
+    font-size: 1.8rem;
+    margin-bottom: var(--space-sm);
+    font-weight: 700;
+}
+
+.flight-id {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 0;
+}
+
+.flight-details {
+    background: var(--light-gray);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row .label {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.detail-row .value {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.cancellation-warning {
+    margin-bottom: var(--space-2xl);
+}
+
+.warning-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    border-left: 4px solid var(--danger);
+}
+
+.warning-box h3 {
+    color: var(--danger);
+    margin-bottom: var(--space-md);
+    font-size: 1.1rem;
+}
+
+.warning-box p {
+    color: var(--text-dark);
+    margin-bottom: var(--space-sm);
+    font-weight: 500;
+}
+
+.warning-box ul {
+    color: var(--text-dark);
+    padding-left: var(--space-lg);
+    margin-bottom: 0;
+}
+
+.warning-box li {
+    margin-bottom: var(--space-xs);
+}
+
+.action-buttons {
+    text-align: center;
+}
+
+.btn-full-width {
+    width: 100%;
+    margin-bottom: var(--space-md);
+}
+
+.button-spacing {
+    height: var(--space-md);
+}
+
+.cancel-form {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: var(--space-md);
+    }
+
+    .confirmation-card {
+        padding: var(--space-xl);
+    }
+
+    .warning-title {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}

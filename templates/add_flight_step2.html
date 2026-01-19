@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+
+{% block title %}Add New Flight - Step 2 | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="form-header-section">
+        <h1><i class="fas fa-plus-circle"></i> Add New Flight</h1>
+        <div class="progress-bar">
+            <div class="step completed">
+                <div class="step-number">1</div>
+                <span>Flight Details</span>
+            </div>
+            <div class="step active">
+                <div class="step-number">2</div>
+                <span>Aircraft Selection</span>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <span>Crew & Pricing</span>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <span>Confirmation</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="form-header">
+            <h2>Step 2: Select Aircraft</h2>
+            <p>Choose the appropriate aircraft for this flight</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('add_flight_step2') }}" class="aircraft-form">
+            {% if planes %}
+            <div class="aircraft-selection">
+                <h3>Available Aircraft</h3>
+                <div class="aircraft-grid">
+                    {% for plane in planes %}
+                    <div class="aircraft-card">
+                        <input type="radio" id="plane_{{ plane.PlainID }}" name="plane_id"
+                               value="{{ plane.PlainID }}" required class="aircraft-radio">
+                        <label for="plane_{{ plane.PlainID }}" class="aircraft-label">
+                            <div class="aircraft-header">
+                                <i class="fas fa-plane"></i>
+                                <h4>{{ plane.PlainID }}</h4>
+
+                            </div>
+
+
+                                <div class="detail-row">
+                                    <span>Size Category:</span>
+                                    <span>{{ plane.Size }}</span>
+                                </div>
+                                {% if plane.Size == 'Large' %}
+                                <div class="crew-requirements">
+                                    <small>Requires: 3 pilots, 6 attendants</small>
+                                </div>
+                                {% else %}
+                                <div class="crew-requirements">
+                                    <small>Requires: 2 pilots, 3 attendants</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="no-aircraft">
+                <i class="fas fa-plane-slash"></i>
+                <h3>No Available Aircraft</h3>
+                <p>No aircraft are available for the selected date and time.</p>
+            </div>
+            {% endif %}
+
+            <div class="form-actions">
+                {% if planes %}
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-arrow-right"></i> Continue to Crew & Pricing
+                </button>
+                {% endif %}
+                <a href="{{ url_for('add_flight_step1') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Flight Details
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
