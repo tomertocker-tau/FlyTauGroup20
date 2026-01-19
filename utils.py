@@ -372,4 +372,4 @@ def find_available_plains(take_off_time: datetime,
                           destination_field: str,
                           is_long_flight: bool):
     q_ans = get_availables_query("Plains", "PlainID",take_off_time, landing_time, source_field, destination_field, is_long_flight)
-    return [s["PlainID"] for s in select(q_ans)]
+    return select(q_ans, ["Plains.PlainID", "Plains.Size"], join=("Plains", ["PlainID"]))
