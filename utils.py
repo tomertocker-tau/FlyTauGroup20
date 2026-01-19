@@ -23,54 +23,55 @@ def insert_customer_details(First_name : str,
                             date_of_birth: date = None,
                             signup_date: date = None,
                             is_signed_up: bool = False):
-    dict_details = {"EngFirstName": First_name,
-                    "EngLastName": Last_name,
-                    "Email": email}
+    dict_details = {"EngFirstName": f"'{First_name}'",
+                    "EngLastName": f"'{Last_name}'",
+                    "Email": f"'{email}'"}
     if is_signed_up:
         assert passport_num is not None and password and signup_date and date_of_birth
-        dict_details.update({"Password": password,
-                             "PassportID": passport_num,
-                             "BirthDate": date_of_birth,
-                             "SignupDate": signup_date})
+        dict_details.update({"UserPassword": f"'{password}'",
+                             "PassportNumber": passport_num,
+                             "BirthDate": f"'{date_of_birth}'",
+                             "SignupDate": f"'{signup_date}'"})
         table_name = "Customers"
     else:
         table_name = "Guests"
     insert(table_name, dict_details)
 
-def insert_phones(email: str, phones: List[str], is_signed_up: bool = True):
+def insert_phones(email: str, phones: List[str], is_signed_up: bool = False):
     table_name = "CustomersPhoneNumbers" if is_signed_up else "GuestsPhoneNumbers"
     for phone in phones:
         phone = phone.strip()
-        if select(table_name,
+        if len(select(table_name,
                   [f"{table_name}.Email", f"{table_name}.Phone"],
-                  where=f"{table_name}.Email={email} AND {table_name}.Phone={phone}"):
+                  where=f"{table_name}.Email='{email}' AND {table_name}.Phone='{phone}'")) > 0:
             continue
         else:
-            insert(table_name, {"Email": email, "Phone": phone})
+            insert(table_name, {"Email": f"'{email}'", "Phone": f"'{phone}'"})
 
 def insert_order(email : str,
                  plain_id: Union[str, int],
                  class_type: str,
                  flight_id: Union[str, int],
-                 is_signed_up: bool = True):
+                 is_signed_up: bool = False):
     table_name = "CustomerOrders" if is_signed_up else "GuestOrders"
-    last_id = select(table_name, ["MAX(OrderID) AS MaxId"])[0]["MaxId"]
+    last_id = select("((SELECT OrderID FROM GuestOrders) UNION (SELECT OrderID FROM CustomerOrders)) AS O",
+                     ["MAX(O.OrderID) AS MaxId"])[0]["MaxId"]
     order_id = last_id + 1
     insert(table_name,
            {
-               "OrderId": order_id,
-               "Email": email,
+               "OrderID": order_id,
+               "Email": f"'{email}'",
                "PlainID": plain_id,
-               "ClassType": class_type,
+               "ClassType": f"'{class_type}'",
                "FlightID": flight_id,
-               "OrderStatus": "Done",
-               "OrderDate": datetime.today()
+               "OrderStatus": "'Active'",
+               "OrderDate": f"'{datetime.today()}'"
            })
     return order_id
 
-def insert_order_seats(order_seats: List[Dict[str, Union[str, int]]], is_signed_up: bool = True):
-    for order_seat in order_seats:
-        insert("CustomerOrderSeats" if is_signed_up else "GuestOrderSeats", order_seat)
+def insert_order_seats(order_id: Union[int, str], order_seats: List[Tuple[int, int]], is_signed_up: bool = False):
+    for seat in order_seats:
+        insert("SelectedSeatsCustomerOrders" if is_signed_up else "SelectedSeatsGuestOrders", {"OrderId": order_id, "Line": seat[0], "SeatLetter": seat[1]})
 
 def insert_plain(plain_id: Union[str, int],
                  manufacturer: str,
@@ -79,14 +80,14 @@ def insert_plain(plain_id: Union[str, int],
     insert("Plains",
            {
                "PlainID": plain_id,
-               "Manufacturer": manufacturer,
-               "Size": size,
-               "PurchaseDate": purchase_date
+               "Manufacturer": f"'{manufacturer}'",
+               "Size": f"'{size}'",
+               "PurchaseDate": f"'{purchase_date}'"
            })
 
-def insert_classes(classes: List[Dict[str, Union[str, int]]]):
+def insert_classes(plain_id: Union[str, int], classes: List[Tuple[str, int, int]]):
     for cls in classes:
-        insert("Class", cls)
+        insert("Class", {"PlainID": plain_id, "ClassType": f"'{cls[0]}'", "NumberRows": cls[1], "NumberCols": cls[2]})
 
 def insert_flight(plain_id: Union[str, int],
                   take_off_time: datetime,
@@ -98,17 +99,18 @@ def insert_flight(plain_id: Union[str, int],
            {
                "FlightID": flight_id,
                "PlainID": plain_id,
-               "SourceField": source_field,
-               "DestinationField": destination_field,
-               "TakeOffTime": take_off_time,
-               "IsDeleted": "0"
+               "SourceField": f"'{source_field}'",
+               "DestinationField": f"'{destination_field}'",
+               "TakeOffTime": f"'{take_off_time.__str__().split('.')[0]}'",
+               "IsDeleted": "BINARY(0)"
            })
     return flight_id
 
 
-def insert_flight_prices(prices: List[Dict[str, Union[str, int]]]):
+def insert_flight_prices(flight_id : Union[str, int], plain_id: Union[str, int], prices: List[Tuple[str, Union[str, int, float]]]):
     for price in prices:
-        insert("FlightPrices", price)
+        insert("FlightPrices", {"FlightID": flight_id, "PlainID": plain_id, "ClassType": f"'{price[0]}'", "Price": price[1]})
+
 
 def insert_attendant(attendant_id: Union[str, int],
                      first_name: str,
@@ -122,14 +124,14 @@ def insert_attendant(attendant_id: Union[str, int],
     insert("FlightAttendants",
            {
                "AttendantId": attendant_id,
-               "FirstName": first_name,
-               "LastName": last_name,
-               "Phone": phone,
-               "City": city,
-               "Street": street,
+               "FirstName": f"'{first_name}'",
+               "LastName": f"'{last_name}'",
+               "Phone": f"'{phone}'",
+               "City": f"'{city}'",
+               "Street": f"'{street}'",
                "HomeNumber": home_number,
-               "JobStartDay": job_start_day,
-               "Qualified4LongFlights": qualified4long_flights
+               "JobStartDay": f"'{job_start_day}'",
+               "Qualified4LongFlights": f"BINARY({qualified4long_flights})"
            })
 
 def insert_pilot(pilot_id: Union[str, int],
@@ -143,15 +145,15 @@ def insert_pilot(pilot_id: Union[str, int],
                  qualified4long_flights: int = 0):
     insert("Pilots",
            {
-               "PilotId": pilot_id,
-               "FirstName": first_name,
-               "LastName": last_name,
-               "Phone": phone,
-               "City": city,
-               "Street": street,
+               "PilotID": pilot_id,
+               "FirstName": f"'{first_name}'",
+               "LastName": f"'{last_name}'",
+               "Phone": f"'{phone}'",
+               "City": f"'{city}'",
+               "Street": f"'{street}'",
                "HomeNumber": home_number,
-               "JobStartDay": job_start_day,
-               "Qualified4LongFlights": qualified4long_flights
+               "JobStartDay": f"'{job_start_day}'",
+               "Qualified4LongFlights": f"BINARY({qualified4long_flights})"
            })
 
 
