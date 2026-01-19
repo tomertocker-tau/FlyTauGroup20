@@ -103,7 +103,14 @@ def flight_status_query():
                             })
 
 
-def get_availables_query(origin_table: str, pivot_column: str, take_off_time: datetime, landing_time: datetime, source_field: str, is_long_flight: bool):
+
+def get_availables_query(origin_table: str,
+                         pivot_column: str,
+                         take_off_time: datetime,
+                         landing_time: datetime,
+                         source_field: str,
+                         destination_field: str,
+                         is_long_flight: bool):
      if (pivot_column == "PlainID" and origin_table == "Plains"):
          q_table = get_select_query(origin_table, [f"{origin_table}.{pivot_column}",
                                                    "FT.FlightID",
@@ -111,22 +118,16 @@ def get_availables_query(origin_table: str, pivot_column: str, take_off_time: da
                                                    "FT.DestinationField",
                                                    "FT.TakeOffTime",
                                                    "FT.LandingTime"],
-                                    cases={
-                                        f"{origin_table}.Size='Large'": "BINARY(1)",
-                                        "ELSE": "BINARY(0)",
-                                        "AS": "Qualified4LongFlights"
-                                    },
+                                    where=f"{origin_table}.Size='Large'" if is_long_flight else None,
                                     join=(f"({get_flights_with_landing_query()}) AS FT", ["PlainID"]),
                                     side_join="LEFT")
      elif ((pivot_column=="AttendantID" and origin_table=="FlightAttendants") or
            (pivot_column == "PilotID" and origin_table=="Pilots")):
-         w_table = get_select_query(origin_table, [f"{origin_table}.{pivot_column}",
-                                                   f"{origin_table}.Qualified4LongFlights",
-                                                   "W.FlightID"],
+         w_table = get_select_query(origin_table, [f"{origin_table}.{pivot_column}","W.FlightID"],
+                                    where=f"{origin_table}.Qualified4LongFlights" if is_long_flight else None,
                                     join=(f"WorkingFlight{pivot_column.replace('ID','s')} AS W", [pivot_column]),
                                     side_join="LEFT")
          q_table = get_select_query(f"({w_table}) AS Work", [f"Work.{pivot_column}",
-                                                          "Work.Qualified4LongFlights",
                                                           "FT.FlightID",
                                                           "FT.SourceField",
                                                           "FT.DestinationField",
@@ -136,17 +137,24 @@ def get_availables_query(origin_table: str, pivot_column: str, take_off_time: da
                                     side_join="LEFT")
      else:
          raise Exception("Invalid Values in origin_table and pivot_column")
-     req_q = "AND Landing.Qualified4LongFlights " if is_long_flight else ""
-     q_check = get_select_query(f"({q_table}) AS Landing",
-                                [f"Landing.{pivot_column}"],
-                  cases={f"(Landing.TakeOffTime>'{landing_time.__str__().split('.')[0]}' "
-                        f"OR Landing.LandingTime<'{take_off_time.__str__().split('.')[0]}' "
-                        f"OR ISNULL(Landing.TakeOffTime) "
-                        f"OR ISNULL(Landing.LandingTime)) "
-                        + req_q +
-                        f"AND (Landing.DestinationField='{source_field}' "
-                        f"OR ISNULL(Landing.DestinationField))":"1","ELSE": "0", "AS": "IsAvailable"})
-     q_ans = get_select_query(origin_table, [f"{origin_table}.{pivot_column}"],
-                              where=f"NOT EXIST(SELECT 1 FROM ({q_check}) AS CheckAvailable WHERE CheckAvailable.{pivot_column}={origin_table}.{pivot_column})")
+     str_landing_time = landing_time.__str__().split('.')[0]
+     str_take_off_time = take_off_time.__str__().split('.')[0]
+     q_max_time = get_select_query(f"({q_table}) AS MaxTime",
+                                       ["MAX(MaxTime.LandingTime)"],
+                                   where=f"MaxTime.{pivot_column} = AfterQ.{pivot_column}")
+     q_min_time = get_select_query(f"({q_table}) AS MinTime",
+                                   ["MIN(MinTime.TakeOffTime)"],
+                                   where=f"MinTime.{pivot_column} = BeforeQ.{pivot_column}")
+     q_before = get_select_query(f"({q_table}) AS BeforeQ",
+                                 [f"BeforeQ.{pivot_column}"],
+                                 where=f"(BeforeQ.TakeOffTime IS NULL OR BeforeQ.TakeOffTime > '{str_landing_time}') "
+                                       f"AND (BeforeQ.SourceField IS NULL OR BeforeQ.SourceField = '{destination_field}') "
+                                       f"AND BeforeQ.TakeOffTime = ({q_min_time})")
+     q_after = get_select_query(f"({q_table}) AS AfterQ",
+                                [f"AfterQ.{pivot_column}"],
+                                where=f"(AfterQ.LandingTime IS NULL OR AfterQ.LandingTime < '{str_take_off_time}')"
+                                      f"AND (AfterQ.DestinationField IS NULL OR AfterQ.DestinationField = '{source_field}') "
+                                      f"AND AfterQ.LandingTime = ({q_max_time})")
+     q_ans = f"(({q_before}) UNION ({q_after})) AS Q"
      return q_ans
 
