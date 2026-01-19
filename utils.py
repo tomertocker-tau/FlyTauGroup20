@@ -273,6 +273,8 @@ def get_customer_history(email: str, status: str = None):
     :param status:
     :return: OrderID, ClassType, NumSeats, SourceField, DestinationField, TakeOffTime, OrderPrice, Status
     '''
+    find_and_set_complete()
+    find_and_set_complete(True)
     q_seats = occupied_seats_by_flight_and_class_query()
     status_condition = f" AND S.OrderStatus='{status}'" if status else ""
     q_with_client = get_select_query(q_seats,
@@ -307,6 +309,16 @@ def delete_order(order_id: Union[str, int], is_signed_up: bool = False):
         update("GuestOrders",
                {"OrderStatus":"'Customer_Cancelled'"},
                where=f"GuestOrders.OrderID={order_id}")
+
+def find_and_set_complete(is_signed_up : bool = False):
+    table_name = "CustomerOrders" if is_signed_up else "GuestOrders"
+    clients = select(table_name, [f"{table_name}.OrderID"],
+                     join=("Flights", ["FlightID"]),
+                     where=f"Flights.TakeOffTime<='{datetime.now().__str__().split()[0]}' "
+                           f"AND Flights.OrderStatus!='Customer_Cancelled' "
+                           f"AND Flights.OrderStatus!='System_Cancelled' ")
+    for client in clients:
+        update(table_name, {"OrderStatus": "'Complete'"}, where=f"{table_name}.OrderID={client['OrderID']}")
 
 def get_order(order_id:Union[str, int], email: str):
     '''
