@@ -225,16 +225,18 @@ def find_flights_by(flight_id:Union[str,int] = None,
 def get_available_pilots(take_off_time: datetime,
                           landing_time: datetime,
                           source_field: str,
+                         destination_field: str,
                           is_long_flight: bool):
-    q_ans = get_availables_query("Pilots", "PilotID", take_off_time, landing_time, source_field, is_long_flight)
-    return [s["PilotID"] for s in select(f"({q_ans}) AS Q")]
+    q_ans = get_availables_query("Pilots", "PilotID", take_off_time, landing_time, source_field, destination_field, is_long_flight)
+    return [s["PilotID"] for s in select(q_ans)]
 
 def get_available_attendants(take_off_time: datetime,
                           landing_time: datetime,
                           source_field: str,
+                             destination_field : str,
                           is_long_flight: bool):
-    q_ans = get_availables_query("FlightAttendants", "AttendantID", take_off_time, landing_time, source_field, is_long_flight)
-    return [s["AttendantID"] for s in select(f"({q_ans}) AS Q")]
+    q_ans = get_availables_query("FlightAttendants", "AttendantID", take_off_time, landing_time, source_field, destination_field, is_long_flight)
+    return [s["AttendantID"] for s in select(q_ans)]
 
 
 
@@ -355,6 +357,7 @@ def get_flight_category(source_field: str, destination_field: str):
 def find_available_plains(take_off_time: datetime,
                           landing_time: datetime,
                           source_field: str,
+                          destination_field: str,
                           is_long_flight: bool):
-    q_ans = get_availables_query("Plains", "PlainID",take_off_time, landing_time, source_field, is_long_flight)
-    return [s["PlainID"] for s in select(f"({q_ans}) AS Q")]
+    q_ans = get_availables_query("Plains", "PlainID",take_off_time, landing_time, source_field, destination_field, is_long_flight)
+    return [s["PlainID"] for s in select(q_ans)]
