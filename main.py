@@ -3,7 +3,7 @@ from flask_session import Session
 from datetime import date, timedelta, datetime
 import secrets
 import os
-from dummies import *
+from utils import *
 
 app = Flask(__name__)
 
@@ -100,7 +100,7 @@ def signup_new():
         signup_date = str(date.today())
 
         # Validation checks
-        if customer_exists(email):
+        if assigned_customer_exists(email):
             return render_template("login_new.html",
                                    message="You are already registered")
 
@@ -411,6 +411,7 @@ def add_flight_step2():
         take_off_time=takeoff_datetime,
         landing_time=landing_datetime,
         source_field=session['flight_data']['source_field'],
+        destination_field=session['flight_data']['destination_field'],
         is_long_flight=session['flight_data']['is_long_flight']
     )
 
@@ -456,8 +457,8 @@ def add_flight_step3():
     # תיקון: שימוש בנתון שכבר יש לנו
     is_long_flight = session['flight_data']['is_long_flight']
 
-    available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field, is_long_flight)
-    available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field, is_long_flight)
+    available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field, destination_field, is_long_flight)
+    available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field, destination_field, is_long_flight)
 
     # קבלת מחלקות המטוס
     selected_plane_id = session['flight_data'].get('selected_plane')
@@ -499,6 +500,7 @@ def add_flight_step4():
         take_off_time=takeoff_datetime,
         landing_time=landing_datetime,
         source_field=flight_data['source_field'],
+        destination_field=flight_data['destination_field'],
         is_long_flight=flight_data['is_long_flight']
     )
 
@@ -516,6 +518,7 @@ def add_flight_step4():
         takeoff_datetime,
         landing_datetime,
         flight_data['source_field'],
+        flight_data['destination_field'],
         flight_data['is_long_flight']
     )
 
@@ -523,6 +526,7 @@ def add_flight_step4():
         takeoff_datetime,
         landing_datetime,
         flight_data['source_field'],
+        flight_data['destination_field'],
         flight_data['is_long_flight']
     )
 
@@ -535,7 +539,7 @@ def add_flight_step4():
     if request.method == 'POST':
         try:
             # יצירת הטיסה
-            insert_flight(
+            flight_id = insert_flight(
                 plain_id=flight_data['selected_plane'],
                 take_off_time=takeoff_datetime,
                 source_field=flight_data['source_field'],
@@ -543,17 +547,10 @@ def add_flight_step4():
             )
 
             # הוספת מחירים
-            pricing = flight_data.get('pricing', {})
-            prices_to_insert = []
-            for class_name, price in pricing.items():
-                prices_to_insert.append({
-                    'PlainID': flight_data['selected_plane'],
-                    'ClassType': class_name,
-                    'Price': float(price)
-                })
-
-            if prices_to_insert:
-                insert_flight_prices(prices_to_insert)
+            pricing = flight_data.get('pricing')
+            if pricing:
+                plain_id = flight_data['selected_plane']
+                insert_flight_prices(flight_id, plain_id, list(pricing.items()))
 
             session.pop('flight_data', None)
             flash('Flight added successfully!', 'success')
@@ -711,7 +708,7 @@ def booking_step1_process(flight_id):
 
     email = request.form.get('email')
 
-    is_registered = customer_exists(email) and len(get_assigned_customer(email)) > 0
+    is_registered = assigned_customer_exists(email) and len(get_assigned_customer(email)) > 0
 
     session['booking_data'] = {
         'flight_id': flight_id,
@@ -807,7 +804,7 @@ def complete_booking():
         flights = find_flights_by(flight_id=booking_data['flight_id'])
         plain_id = flights[0]['PlainID'] if flights else None
 
-        insert_order(
+        order_id = insert_order(
             email=email,
             plain_id=plain_id,
             class_type=booking_data['class_type'],
@@ -818,13 +815,9 @@ def complete_booking():
         seat_data = []
         for seat in booking_data['selected_seats']:
             row, letter = seat.split('-')
-            seat_data.append({
-                'OrderId': order_id,
-                'Line': int(row),
-                'SeatLetter': letter
-            })
+            seat_data.append((row, letter))
 
-        insert_order_seats(seat_data, is_signed_up=is_registered)
+        insert_order_seats(order_id, seat_data, is_signed_up=is_registered)
 
         session.pop('booking_data', None)
 
@@ -929,7 +922,7 @@ def add_plane():
 
     if request.method == 'POST':
         try:
-            plane_id = request.form.get('plane_id')
+            plain_id = request.form.get('plane_id')
             manufacturer = request.form.get('manufacturer')
             size = request.form.get('size')
             purchase_date = request.form.get('purchase_date')
@@ -937,7 +930,7 @@ def add_plane():
             purchase_date_obj = datetime.strptime(purchase_date, '%Y-%m-%d').date()
 
             insert_plain(
-                plain_id=plane_id,
+                plain_id=plain_id,
                 manufacturer=manufacturer,
                 size=size,
                 purchase_date=purchase_date_obj
@@ -945,30 +938,15 @@ def add_plane():
 
             if size == 'Large':
                 classes = [
-                    {
-                        'PlainID': plane_id,
-                        'ClassType': 'Regular',
-                        'Rows': 30,
-                        'Cols': 6
-                    },
-                    {
-                        'PlainID': plane_id,
-                        'ClassType': 'Business',
-                        'Rows': 8,
-                        'Cols': 4
-                    }
+                    ("Regular", 30, 6),
+                    ("Business", 8, 4),
                 ]
             else:  # Small
                 classes = [
-                    {
-                        'PlainID': plane_id,
-                        'ClassType': 'Regular',
-                        'Rows': 20,
-                        'Cols': 4
-                    }
+                    ("Regular", 20, 4),
                 ]
 
-            insert_classes(classes)
+            insert_classes(plain_id, classes)
 
             flash('Plane purchased successfully', 'success')
             return redirect(url_for('managers_page'))
