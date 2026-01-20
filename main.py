@@ -924,7 +924,13 @@ def add_plane():
         try:
             plain_id = request.form.get('plane_id')
             manufacturer = request.form.get('manufacturer')
-            size = request.form.get('size')
+            classes = []
+            for cls in ["regular", "business"]:
+                rows = request.form.get(f"{cls}_class_rows")
+                cols = request.form.get(f"{cls}_class_columns")
+                if rows and cols and int(rows) > 0 and int(cols) > 0:
+                    classes.append((cls.capitalize(), rows, cols))
+            size = "Large" if len(classes) == 2 else "Small"
             purchase_date = request.form.get('purchase_date')
 
             purchase_date_obj = datetime.strptime(purchase_date, '%Y-%m-%d').date()
@@ -935,16 +941,6 @@ def add_plane():
                 size=size,
                 purchase_date=purchase_date_obj
             )
-
-            if size == 'Large':
-                classes = [
-                    ("Regular", 30, 6),
-                    ("Business", 8, 4),
-                ]
-            else:  # Small
-                classes = [
-                    ("Regular", 20, 4),
-                ]
 
             insert_classes(plain_id, classes)
 

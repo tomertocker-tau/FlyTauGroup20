@@ -28,12 +28,18 @@
             </div>
 
             <div class="form-group">
-                <label for="size">Aircraft Size</label>
-                <select id="size" name="size" required class="form-control">
-                    <option value="">Select Size</option>
-                    <option value="Large">Large (Long & Short Flights)</option>
-                    <option value="Small">Small (Short Flights Only)</option>
-                </select>
+                <label>Regular Class</label>
+                <label for="regular_class_rows">Rows</label>
+                <input type="number" step="1" min="1" value="1" id="regular_class_rows" name="regular_class_rows">
+                <label for="regular_class_columns">Columns</label>
+                <input type="number" step="1" min="1" value="1" id="regular_class_columns" name="regular_class_columns">
+            </div>
+            <div class="form-group">
+                <label>Business Class (if no such class, put zero rows and zero columns)</label>
+                <label for="business_class_rows">Rows</label>
+                <input type="number" step="1" min="0" value="0" id="business_class_rows" name="regular_class_rows">
+                <label for="business_class_columns">Columns</label>
+                <input type="number" step="1" min="0" value="0" id="business_class_columns" name="regular_class_columns">
             </div>
 
             <div class="form-group">
