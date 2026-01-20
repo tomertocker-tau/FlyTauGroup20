@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+
+{% block title %}Flight Search Results | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-search"></i> Flight Search Results</h1>
+        <p>{{ search_params.source }} → {{ search_params.destination }} | {{ search_params.date }} | {{ search_params.passengers }} passenger(s)</p>
+    </div>
+
+    {% if flights %}
+    <div class="form-container">
+        <div class="form-header">
+            <h2>Available Flights</h2>
+            <p>Found {{ flights|length }} flight(s) matching your search</p>
+        </div>
+
+        <div class="flights-results">
+            {% for flight in flights %}
+            <div class="management-card">
+                <div class="flight-info-section">
+                    <div class="flight-route-info">
+                        <h3>{{ flight.SourceField }} → {{ flight.DestinationField }}</h3>
+                        <div class="flight-details-row">
+                            <span><i class="fas fa-plane"></i> Flight {{ flight.FlightID }}</span>
+                            <span><i class="fas fa-calendar"></i> {{ flight.TakeOffTime|datetime('%d/%m/%Y') }}</span>
+                            <span><i class="fas fa-clock"></i> {{ flight.TakeOffTime|datetime('%H:%M') }}</span>
+                            <span><i class="fas fa-plane-departure"></i> {{ flight.PlainID }}</span>
+                        </div>
+                    </div>
+
+                    <div class="flight-classes-section">
+                        {% if flight.Economy_price %}
+                        <div class="class-booking-option">
+                            <div class="class-info">
+                                <h4><i class="fas fa-chair"></i> Economy Class</h4>
+                                <p class="price-display">${{ flight.Economy_price }}</p>
+                                <small>per passenger</small>
+                            </div>
+                            <a href="{{ url_for('book_flight', flight_id=flight.FlightID, class_type='Economy') }}"
+                               class="btn btn-primary">
+                                Book Economy
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if flight.Business_price %}
+                        <div class="class-booking-option business-class">
+                            <div class="class-info">
+                                <h4><i class="fas fa-crown"></i> Business Class</h4>
+                                <p class="price-display">${{ flight.Business_price }}</p>
+                                <small>per passenger</small>
+                            </div>
+                            <a href="{{ url_for('book_flight', flight_id=flight.FlightID, class_type='Business') }}"
+                               class="btn btn-secondary">
+                                Book Business
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% else %}
+    <div class="form-container">
+        <div class="no-results-section">
+            <i class="fas fa-search" style="font-size: 4rem; color: var(--text-muted); margin-bottom: var(--space-lg);"></i>
+            <h3>No Flights Found</h3>
+            <p>Sorry, no flights match your search criteria. Please try different dates or destinations.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="form-actions">
+        <a href="{{ url_for('homepagenew') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> New Search
+        </a>
+        {% if session.user_type == 'customer' %}
+        <a href="{{ url_for('users_page') }}" class="btn btn-primary">
+            <i class="fas fa-user"></i> Back to Dashboard
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}html>

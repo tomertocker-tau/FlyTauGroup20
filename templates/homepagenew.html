@@ -22,29 +22,24 @@
                 <!-- Horizontal Search Fields -->
                 <div class="search-row">
                     <div class="form-group">
-                        <label for="source"><i class="fas fa-plane-departure"></i> From</label>
-                        <select id="source" name="source" required class="form-control">
-                            <option value="">Select departure city</option>
-                            <option value="Tel Aviv">Tel Aviv</option>
-                            <option value="New York">New York</option>
-                            <option value="London">London</option>
-                            <option value="Paris">Paris</option>
-                            <option value="Rome">Rome</option>
-                        </select>
-                    </div>
+            <label for="source"><i class="fas fa-plane-departure"></i> From</label>
+            <select id="source" name="source" required class="form-control">
+                <option value="">Select departure city</option>
+                {% for city in airports %}
+                    <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-                    <div class="form-group">
-                        <label for="destination"><i class="fas fa-plane-arrival"></i> To</label>
-                        <select id="destination" name="destination" required class="form-control">
-                            <option value="">Select destination city</option>
-                            <option value="Tel Aviv">Tel Aviv</option>
-                            <option value="New York">New York</option>
-                            <option value="London">London</option>
-                            <option value="Paris">Paris</option>
-                            <option value="Rome">Rome</option>
-                        </select>
-                    </div>
-
+        <div class="form-group">
+            <label for="destination"><i class="fas fa-plane-arrival"></i> To</label>
+            <select id="destination" name="destination" required class="form-control">
+                <option value="">Select destination city</option>
+                {% for city in airports %}
+                    <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
                     <div class="form-group">
                         <label for="takeoff_date"><i class="fas fa-calendar-alt"></i> Departure Date</label>
                         <input type="date" id="takeoff_date" name="takeoff_date" required class="form-control">
@@ -119,12 +114,11 @@
 <style>
 .hero-section {
     width: 100%;
-    min-height: 85vh;
+    min-height: 100vh;
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
     align-items: center;
-    padding-top: 300px;
-    padding-bottom: 30px;
+    padding: 40px 0;
     background-color: #f0f8ff;
     background-image: url("{{ url_for('static', filename='images/sky_background.jpeg') }}");
     background-size: cover;

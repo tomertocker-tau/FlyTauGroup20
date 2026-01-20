@@ -1,0 +1,146 @@
+{% extends "layout.html" %}
+
+{% block title %}Seat Selection | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-chair"></i> Select Your Seats</h1>
+        <p>Choose {{ passengers_count }} seat(s) for your flight</p>
+    </div>
+
+    <div class="form-container">
+        <div class="flight-summary-section">
+            <div class="management-card">
+                <h3>Flight Details</h3>
+                <div class="flight-details-row">
+                    <span><i class="fas fa-plane"></i> {{ flight.SourceField }} → {{ flight.DestinationField }}</span>
+                    <span><i class="fas fa-calendar"></i> {{ flight.TakeOffTime|datetime('%d/%m/%Y %H:%M') }}</span>
+                    <span><i class="fas fa-crown" title="{{ class_type }} Class"></i> {{ class_type }} Class</span>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('complete_booking') }}" class="seat-selection-form">
+            <div class="form-header">
+                <h2>Aircraft Seat Map - {{ class_type }} Class</h2>
+                <p>Select exactly {{ passengers_count }} seat(s) from the available options</p>
+            </div>
+
+            <div class="seat-map-section">
+                <div class="seat-legend-container">
+                    <div class="legend-item">
+                        <div class="seat-indicator seat-available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-indicator seat-occupied"></div>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-indicator seat-selected"></div>
+                        <span>Selected</span>
+                    </div>
+                </div>
+
+                <div class="aircraft-container">
+                    <div class="aircraft-header">
+                        <i class="fas fa-plane"></i> Front of Aircraft
+                    </div>
+
+                    <div class="seat-grid-container">
+                        {% for row_index in range(available_seats|length) %}
+                        <div class="seat-row">
+                            <span class="row-label">{{ row_index + 1 }}</span>
+
+                            {% for col_index in range(available_seats[row_index]|length) %}
+                            {% set seat_letter = "ABCDEF"[col_index] %}
+                            {% set seat_id = (row_index + 1) ~ "-" ~ seat_letter %}
+                            {% set is_occupied = available_seats[row_index][col_index] %}
+
+                            {% if not is_occupied %}
+                            <label class="seat-option">
+                                <input type="checkbox" name="selected_seats" value="{{ seat_id }}" class="seat-checkbox">
+                                <div class="seat seat-available" data-seat="{{ seat_id }}">
+                                    {{ seat_letter }}
+                                </div>
+                            </label>
+                            {% else %}
+                            <div class="seat seat-occupied" data-seat="{{ seat_id }}">
+                                {{ seat_letter }}
+                            </div>
+                            {% endif %}
+
+                            {% if col_index == 2 %}
+                            <div class="aisle-spacer"></div>
+                            {% endif %}
+                            {% endfor %}
+
+                            <span class="row-label">{{ row_index + 1 }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="selection-summary">
+                    <div class="summary-card">
+                        <h4>Selected Seats: <span id="selected-count">0</span>/{{ passengers_count }}</h4>
+                        <div id="selected-list" class="selected-seats-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large" id="continue-btn" disabled>
+                    <i class="fas fa-arrow-right"></i> Continue to Summary
+                </button>
+                <a href="javascript:history.back()" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Passenger Details
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const requiredSeats = {{ passengers_count }};
+    const continueBtn = document.getElementById('continue-btn');
+    const selectedCount = document.getElementById('selected-count');
+    const selectedList = document.getElementById('selected-list');
+    const checkboxes = document.querySelectorAll('.seat-checkbox');
+
+    function updateSelection() {
+        const selected = document.querySelectorAll('.seat-checkbox:checked');
+        const count = selected.length;
+
+        selectedCount.textContent = count;
+
+        const seatNumbers = Array.from(selected).map(cb => cb.value);
+        selectedList.textContent = seatNumbers.join(', ');
+
+        continueBtn.disabled = count !== requiredSeats;
+
+        // Update visual state
+        document.querySelectorAll('.seat-available').forEach(seat => {
+            seat.classList.remove('seat-selected');
+        });
+        selected.forEach(cb => {
+            const seat = cb.nextElementSibling;
+            seat.classList.add('seat-selected');
+        });
+    }
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const selected = document.querySelectorAll('.seat-checkbox:checked');
+            if (selected.length > requiredSeats) {
+                this.checked = false;
+                alert('Please select exactly ' + requiredSeats + ' seat(s).');
+            }
+            updateSelection();
+        });
+    });
+});
+</script>
+{% endblock %}ml>

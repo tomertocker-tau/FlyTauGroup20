@@ -1,0 +1,281 @@
+{% extends "layout.html" %}
+
+{% block title %}Book Flight - Passenger Details | FLYTAU{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="booking-header">
+        <h1><i class="fas fa-ticket-alt"></i> Book Your Flight</h1>
+        <div class="booking-progress">
+            <div class="progress-step active">1. Passenger Details</div>
+            <div class="progress-step">2. Seat Selection</div>
+            <div class="progress-step">3. Booking Summary</div>
+            <div class="progress-step">4. Confirmation</div>
+        </div>
+    </div>
+
+    <!-- Flight Summary -->
+    <div class="flight-summary-card">
+        <div class="summary-header">
+            <i class="fas fa-plane"></i>
+            <h3>Flight Details</h3>
+        </div>
+        <div class="flight-summary-content">
+            <div class="flight-route">
+                <span class="route">{{ flight.SourceField }} → {{ flight.DestinationField }}</span>
+                <span class="date">{{ flight.TakeOffTime|datetime('%d/%m/%Y %H:%M') }}</span>
+            </div>
+            <div class="flight-class">
+                <span class="class-badge {{ class_type.lower() }}">
+                    <i class="fas fa-{{ 'crown' if class_type == 'Business' else 'chair' }}"></i>
+                    {{ class_type }} Class
+                </span>
+                <span class="passengers">{{ passengers_count }} passenger(s)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Passenger Details Form -->
+    <div class="form-container">
+        <div class="form-header">
+            <h2>Passenger Information</h2>
+            <p>Please provide the following details for the booking</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('booking_step1_process') }}" class="passenger-form">
+            <div class="passenger-details">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="first_name"><i class="fas fa-user"></i> First Name</label>
+                        <input type="text" id="first_name" name="first_name"
+                               value="{{ user_data.EngFirstName if user_data else '' }}"
+                               required class="form-control" placeholder="Enter first name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="last_name"><i class="fas fa-user"></i> Last Name</label>
+                        <input type="text" id="last_name" name="last_name"
+                               value="{{ user_data.EngLastName if user_data else '' }}"
+                               required class="form-control" placeholder="Enter last name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
+                        <input type="email" id="email" name="email"
+                               value="{{ user_data.Email if user_data else '' }}"
+                               required class="form-control" placeholder="Enter email address">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone"><i class="fas fa-phone"></i> Phone Number</label>
+                        <input type="tel" id="phone" name="phone"
+                               required class="form-control" placeholder="Enter phone number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="passport_number"><i class="fas fa-id-card"></i> Passport Number</label>
+                        <input type="text" id="passport_number" name="passport_number"
+                               value="{{ user_data.PassportNumber if user_data else '' }}"
+                               required class="form-control" placeholder="Enter passport number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="birth_date"><i class="fas fa-birthday-cake"></i> Date of Birth</label>
+                        <input type="date" id="birth_date" name="birth_date"
+                               value="{{ user_data.BirthDate if user_data else '' }}"
+                               required class="form-control">
+                    </div>
+                </div>
+
+                {% if not user_data %}
+                <div class="guest-notice">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <p>You're booking as a guest. Your information will be saved for this booking only.</p>
+                        <p>Want to save your details for future bookings? <a href="{{ url_for('signup_new') }}">Create an account</a></p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-arrow-right"></i> Continue to Seat Selection
+                </button>
+                <a href="javascript:history.back()" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Flight Search
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.booking-header {
+    text-align: center;
+    margin-bottom: var(--space-2xl);
+}
+
+.booking-header h1 {
+    color: var(--primary-color);
+    margin-bottom: var(--space-lg);
+}
+
+.booking-progress {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+    flex-wrap: wrap;
+}
+
+.progress-step {
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--gray-200);
+    color: var(--text-muted);
+    border-radius: var(--radius-lg);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.progress-step.active {
+    background: var(--primary-color);
+    color: var(--text-light);
+}
+
+.flight-summary-card {
+    background: var(--blue-gradient);
+    color: var(--text-light);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    margin-bottom: var(--space-2xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.summary-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+
+.summary-header h3 {
+    color: var(--text-light);
+    margin: 0;
+}
+
+.flight-summary-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.flight-route {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.route {
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.date {
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+.flight-class {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.class-badge {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-lg);
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+}
+
+.class-badge.business {
+    background: var(--accent-gold);
+    color: var(--primary-dark);
+}
+
+.passengers {
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+.passenger-details {
+    margin-bottom: var(--space-2xl);
+}
+
+.guest-notice {
+    background: var(--primary-lighter);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-top: var(--space-xl);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+}
+
+.guest-notice i {
+    color: var(--primary-color);
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.guest-notice p {
+    margin: 0;
+    color: var(--text-dark);
+}
+
+.guest-notice p:first-of-type {
+    margin-bottom: var(--space-xs);
+}
+
+.guest-notice a {
+    color: var(--primary-color);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.guest-notice a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .booking-progress {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .progress-step {
+        width: 100%;
+        max-width: 250px;
+        text-align: center;
+    }
+
+    .flight-summary-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .guest-notice {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}html>

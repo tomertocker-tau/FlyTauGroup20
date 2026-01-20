@@ -26,19 +26,28 @@ Session(app)
 @app.route('/')
 def homepagenew():
     """Homepage with search functionality"""
-    return render_template("homepagenew.html")
+    airports = get_all_fields()
+    return render_template("homepagenew.html", airports=airports)
 
 
 @app.route('/search_flights', methods=['GET', 'POST'])
 def search_flights():
-    """Handle flight search from homepage"""
+    """Handle flight search and show available flights"""
     if request.method == 'POST':
-        source_field = request.form.get('SourceField')
-        destination_field = request.form.get('DestinationField')
-        take_off_date = request.form.get('TakeOffDate')
-        passengers_amount = request.form.get('PassengersAmount')
+        source_field = request.form.get('source')
+        destination_field = request.form.get('destination')
+        take_off_date = request.form.get('takeoff_date')
+        passengers_amount = request.form.get('passengers', type=int)
 
-        # Store search parameters in session
+        if source_field == destination_field:
+            flash("Source and Destination cannot be the same field.", "error")
+            # מחזירים אותו לדף הבית לנסות שוב
+            return redirect(url_for('homepagenew'))
+
+        if not all([source_field, destination_field, take_off_date, passengers_amount]):
+            flash('Please fill all required fields', 'error')
+            return redirect(url_for('homepagenew'))
+
         session['search_params'] = {
             'source': source_field,
             'destination': destination_field,
@@ -46,19 +55,190 @@ def search_flights():
             'passengers': passengers_amount
         }
 
-        # Get flights based on search criteria
+        takeoff_datetime = datetime.strptime(take_off_date, '%Y-%m-%d')
+
+        # חיפוש טיסות - רק כאלה שיש בהן מספיק מקומות פנויים
         flights = find_flights_by(
             source_field=source_field,
             destination_field=destination_field,
-            take_off_time=datetime.strptime(take_off_date, '%Y-%m-%d') if take_off_date else None
+            take_off_time=takeoff_datetime,
+            num_seats=passengers_amount  # כבר מסנן רק טיסות עם מספיק מקומות
         )
 
-        return render_template("Users_Flight_Table.html",
+        return render_template("flight_search_results.html",
                                flights=flights,
                                search_params=session.get('search_params'))
 
     return redirect(url_for('homepagenew'))
 
+
+@app.route('/flight_search_results')
+def flight_search_results():
+    """Show flight search results page (when accessed directly)"""
+    if 'search_params' not in session:
+        flash('Please search for flights first', 'error')
+        return redirect(url_for('homepagenew'))
+
+    # אם מגיעים לכאן ישירות - להציג את התוצאות שבsession
+    return render_template("flight_search_results.html",
+                           flights=session.get('flights', []),
+                           search_params=session.get('search_params'))
+
+
+@app.route('/book_flight/<flight_id>/<class_type>')
+def book_flight(flight_id, class_type):
+    """Process flight selection and move to passenger details"""
+    # אין בדיקות - הטיסה כבר נבדקה בשלב החיפוש
+    search_params = session.get('search_params')
+    if not search_params:
+        flash('Please search for flights first', 'error')
+        return redirect(url_for('homepagenew'))
+
+    # שליפת פרטי הטיסה רק לתצוגה
+    flights = find_flights_by(flight_id=flight_id)
+    flight = flights[0] if flights else {}
+
+    passengers_count = search_params.get('passengers', 1)
+
+    session['booking_data'] = {
+        'flight_id': flight_id,
+        'class_type': class_type,
+        'passengers_count': passengers_count,
+        'flight': flight
+    }
+
+    # טעינת נתוני משתמש רשום אם קיים
+    user_data = None
+    if 'email' in session and session.get('user_type') == 'customer':
+        user_email = session.get('email')
+        customer_data = get_assigned_customer(user_email)
+        if customer_data:
+            user_data = customer_data[0]
+
+    # מעבר ישיר לדף פרטי הנוסעים
+    return render_template("booking_step1.html",
+                           flight=flight,
+                           class_type=class_type,
+                           user_data=user_data,
+                           passengers_count=passengers_count)
+
+
+
+@app.route('/booking_step1_process', methods=['POST'])
+def booking_step1_process():
+    """Process passenger details form - with passport and birth date"""
+    if 'booking_data' not in session:
+        flash('Please start booking process again', 'error')
+        return redirect(url_for('homepagenew'))
+
+    # עדכון נתוני ההזמנה עם כל הפרטים הנדרשים
+    session['booking_data'].update({
+        'first_name': request.form.get('first_name'),
+        'last_name': request.form.get('last_name'),
+        'email': request.form.get('email'),
+        'phone': request.form.get('phone'),
+        'passport_number': request.form.get('passport_number'),
+        'birth_date': request.form.get('birth_date')
+    })
+
+    # בדיקה אם המשתמש רשום
+    email = request.form.get('email')
+    is_registered = assigned_customer_exists(email) and len(get_assigned_customer(email)) > 0
+    session['booking_data']['is_registered'] = is_registered
+
+    return redirect(url_for('booking_step2'))
+
+
+@app.route('/booking_step2')
+def booking_step2():
+    """Show seat selection page - only for selected class"""
+    if 'booking_data' not in session:
+        flash('Please start booking process again', 'error')
+        return redirect(url_for('homepagenew'))
+
+    booking_data = session['booking_data']
+    flight_id = booking_data['flight_id']
+    class_type = booking_data['class_type']  # המחלקה כבר נבחרה
+    passengers_count = booking_data['passengers_count']
+
+    # קבלת מקומות פנויים רק למחלקה הנבחרת
+    available_seats = get_available_seats(flight_id, class_type)
+
+    flights = find_flights_by(flight_id=flight_id)
+    flight = flights[0] if flights else None
+
+    return render_template("booking_step2_seats.html",
+                           flight=flight,
+                           available_seats=available_seats,
+                           class_type=class_type,
+                           passengers_count=passengers_count,
+                           booking_data=booking_data)
+
+
+@app.route('/complete_booking', methods=['POST'])
+def complete_booking():
+    """Complete the booking - save guest as guest, not customer"""
+    if 'booking_data' not in session:
+        flash('Booking session expired', 'error')
+        return redirect(url_for('homepagenew'))
+
+    try:
+        booking_data = session['booking_data']
+        email = booking_data['email']
+        is_registered = booking_data['is_registered']
+
+        # אם זה אורח - נשאיר אותו אורח ולא ניצור customer
+        if not is_registered:
+            # הוספה לטבלת Guests (לא Customers)
+            insert_customer_details(
+                First_name=booking_data['first_name'],
+                Last_name=booking_data['last_name'],
+                email=email,
+                passport_num=int(booking_data['passport_number']),
+                date_of_birth=datetime.strptime(booking_data['birth_date'], '%Y-%m-%d').date(),
+                is_signed_up=False  # זה יכניס ל-Guests
+            )
+
+            # הוספת טלפון לטבלת GuestsPhoneNumbers
+            if booking_data.get('phone'):
+                insert_phones(email, [booking_data['phone']], is_signed_up=False)
+
+        # יצירת הזמנה - בטבלה הנכונה לפי סוג המשתמש
+        flights = find_flights_by(flight_id=booking_data['flight_id'])
+        plain_id = flights[0]['PlainID'] if flights else None
+
+        order_id = insert_order(
+            email=email,
+            plain_id=plain_id,
+            class_type=booking_data['class_type'],
+            flight_id=booking_data['flight_id'],
+            is_signed_up=is_registered  # GuestOrders אם False, CustomerOrders אם True
+        )
+
+        # הוספת מקומות ישיבה לטבלה הנכונה
+        seat_data = []
+        for seat in booking_data['selected_seats']:
+            if '-' in seat:
+                row, letter = seat.split('-')
+                seat_data.append((int(row), letter))
+
+        if seat_data:
+            # SelectedSeatsGuestOrders אם אורח, SelectedSeatsCustomerOrders אם רשום
+            insert_order_seats(order_id, seat_data, is_signed_up=is_registered)
+
+        # ניקוי session
+        session.pop('booking_data', None)
+        session.pop('search_params', None)
+
+        flash(f'Booking successful! Order ID: {order_id}', 'success')
+        return render_template("booking_confirmation.html",
+                               order_id=order_id,
+                               email=email,
+                               total_price=booking_data.get('total_price'))
+
+    except Exception as e:
+        flash(f'Booking failed: {str(e)}', 'error')
+        return redirect(url_for('complete_booking'))
 
 @app.route('/login_new', methods=['GET', 'POST'])
 def login_new():
@@ -198,6 +378,11 @@ def flights():
         departure_date = request.form.get('departure_date')
         passengers = request.form.get('passengers')
 
+        if origin == destination:
+            flash("Source and Destination cannot be the same field.", "error")
+            # מחזירים אותו לדף הבית לנסות שוב
+            return redirect(url_for('users_page'))
+
         # Store search parameters
         session['search_params'] = {
             'source': origin,
@@ -213,7 +398,7 @@ def flights():
             take_off_time=datetime.strptime(departure_date, '%Y-%m-%d') if departure_date else None
         )
 
-        return render_template("Users_Flight_Table.html",
+        return render_template("flight_search_results.html",
                                flights=flights,
                                search_params=session.get('search_params'))
 
@@ -698,173 +883,6 @@ def confirm_cancel_flight(flight_id):
         flash(f'Error cancelling flight: {str(e)}', 'error')
 
     return redirect(url_for('manager_flight_table'))
-
-
-@app.route('/book_flight/<flight_id>')
-def book_flight(flight_id):
-    flights = find_flights_by(flight_id=flight_id)
-    if not flights:
-        flash('Flight not found', 'error')
-        return redirect(url_for('homepagenew'))
-
-    flight = flights[0]
-
-    user_data = None
-    if 'email' in session:
-        user_email = session.get('email')
-        customer_data = get_assigned_customer(user_email)
-        if customer_data:
-            user_data = customer_data[0]
-
-    return render_template("booking_step1.html",
-                           flight=flight,
-                           user_data=user_data)
-
-
-@app.route('/booking_step1_process/<flight_id>', methods=['POST'])
-def booking_step1_process(flight_id):
-    phone_count = request.form.get('phone_count', type=int)
-
-    if phone_count and not request.form.getlist("phones"):
-        flights = find_flights_by(flight_id=flight_id)
-        flight = flights[0] if flights else None
-
-        form_data = {
-            'first_name': request.form.get('first_name'),
-            'last_name': request.form.get('last_name'),
-            'email': request.form.get('email'),
-            'class_type': request.form.get('class_type')
-        }
-
-        return render_template("booking_step1.html",
-                               flight=flight,
-                               phone_count=phone_count,
-                               form_data=form_data)
-
-    email = request.form.get('email')
-
-    is_registered = assigned_customer_exists(email) and len(get_assigned_customer(email)) > 0
-
-    session['booking_data'] = {
-        'flight_id': flight_id,
-        'first_name': request.form.get('first_name'),
-        'last_name': request.form.get('last_name'),
-        'email': email,
-        'phones': request.form.getlist('phones'),
-        'class_type': request.form.get('class_type'),
-        'is_registered': is_registered
-    }
-
-    return redirect(url_for('booking_step2'))
-
-
-@app.route('/booking_step2')
-def booking_step2():
-    if 'booking_data' not in session:
-        flash('Please start booking process again', 'error')
-        return redirect(url_for('homepagenew'))
-
-    booking_data = session['booking_data']
-    flight_id = booking_data['flight_id']
-    class_type = booking_data['class_type']
-
-    available_seats = get_available_seats(flight_id, class_type)
-
-    flights = find_flights_by(flight_id=flight_id)
-    flight = flights[0] if flights else None
-
-    return render_template("booking_step2_seats.html",
-                           flight=flight,
-                           available_seats=available_seats,
-                           class_type=class_type,
-                           booking_data=booking_data)
-
-
-@app.route('/booking_step3', methods=['POST'])
-def booking_step3():
-    if 'booking_data' not in session:
-        flash('Booking session expired', 'error')
-        return redirect(url_for('homepagenew'))
-
-    selected_seats = request.form.getlist('selected_seats')
-    if not selected_seats:
-        flash('Please select at least one seat', 'error')
-        return redirect(url_for('booking_step2'))
-
-    session['booking_data']['selected_seats'] = selected_seats
-
-    booking_data = session['booking_data']
-    flight_id = booking_data['flight_id']
-    class_type = booking_data['class_type']
-    num_seats = len(selected_seats)
-
-    total_price = get_price(num_seats, int(flight_id), class_type)
-    session['booking_data']['total_price'] = total_price
-
-    flights = find_flights_by(flight_id=flight_id)
-    flight = flights[0] if flights else None
-
-    return render_template("booking_step3_summary.html",
-                           booking_data=session['booking_data'],
-                           flight=flight,
-                           total_price=total_price)
-
-
-@app.route('/complete_booking', methods=['POST'])
-def complete_booking():
-    if 'booking_data' not in session:
-        flash('Booking session expired', 'error')
-        return redirect(url_for('homepagenew'))
-
-    try:
-        booking_data = session['booking_data']
-
-        email = booking_data['email']
-        is_registered = booking_data['is_registered']
-
-        if not is_registered:
-            insert_customer_details(
-                First_name=booking_data['first_name'],
-                Last_name=booking_data['last_name'],
-                email=email,
-                is_signed_up=False
-            )
-
-            if booking_data.get('phones'):
-                insert_phones(email, booking_data['phones'], is_signed_up=False)
-        else:
-            if booking_data.get('phones'):
-                insert_phones(email, booking_data['phones'], is_signed_up=True)
-
-        flights = find_flights_by(flight_id=booking_data['flight_id'])
-        plain_id = flights[0]['PlainID'] if flights else None
-
-        order_id = insert_order(
-            email=email,
-            plain_id=plain_id,
-            class_type=booking_data['class_type'],
-            flight_id=booking_data['flight_id'],
-            is_signed_up=is_registered
-        )
-
-        seat_data = []
-        for seat in booking_data['selected_seats']:
-            row, letter = seat.split('-')
-            seat_data.append((row, letter))
-
-        insert_order_seats(order_id, seat_data, is_signed_up=is_registered)
-
-        session.pop('booking_data', None)
-
-        flash(f'Booking successful! Order ID: {order_id}', 'success')
-        return render_template("booking_confirmation.html",
-                               order_id=order_id,
-                               email=email,
-                               total_price=booking_data.get('total_price'))
-
-    except Exception as e:
-        flash(f'Booking failed: {str(e)}', 'error')
-        return redirect(url_for('booking_step3'))
 
 
 @app.route('/add_attendant', methods=['GET', 'POST'])

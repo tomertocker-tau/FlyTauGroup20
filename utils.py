@@ -73,6 +73,17 @@ def insert_order_seats(order_id: Union[int, str], order_seats: List[Tuple[int, i
     for seat in order_seats:
         insert("SelectedSeatsCustomerOrders" if is_signed_up else "SelectedSeatsGuestOrders", {"OrderId": order_id, "Line": seat[0], "SeatLetter": seat[1]})
 
+# def insert_order_seats(order_id: Union[int, str], order_seats: List[Tuple[int, int]], is_signed_up: bool = False):
+    # for seat in order_seats:
+    #     insert(
+    #         "SelectedSeatsCustomerOrders" if is_signed_up else "SelectedSeatsGuestOrders",
+    #         {
+    #             "OrderId": order_id,
+    #             "Line": seat[0],
+    #             "SeatLetter": f"'{seat[1]}'"  # <--- התיקון כאן: הוספנו גרשיים בתוך f-string
+    #         }
+    #     )
+
 def insert_plain(plain_id: Union[str, int],
                  manufacturer: str,
                  size: str,
