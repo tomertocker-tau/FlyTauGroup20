@@ -203,7 +203,7 @@ def find_flights_by(flight_id:Union[str,int] = None,
     if flight_id:
         conditions.append(f"Flights.FlightID = {flight_id}")
     if status:
-        conditions.append(f"F.Status = '{status}'")
+        conditions.append(f"F.FlightStatus = '{status}'")
     if source_field:
         conditions.append(f"Flights.SourceField LIKE '%{source_field}%'")
     if destination_field:
@@ -220,17 +220,32 @@ def find_flights_by(flight_id:Union[str,int] = None,
         num_seats = 0
     prices_subquery = table_class_prices_query(num_seats)
     status_subquery = flight_status_query()
+    capacity_subquery = get_select_query(f"({get_flights_capacity_query()}) AS Cap",
+                                         ["Cap.FlightID", "SUM(Cap.Capacity) AS TotalSeats"],
+                                         group_by=["Cap.FlightID"])
+    available_subquery = get_select_query(f"({count_available_seats_query()}) AS Av",
+                                          ["Av.FlightID", "SUM(Av.AvailableSeats) AS BookedSeats"],
+                                          group_by=["Av.FlightID"])
     classes = [cls["ClassType"] for cls in select("Class",
                                                   ["ClassType"],
                                                   group_by=["ClassType"])]
+    joint_columns = ["FStatus.FlightID", "FStatus.FlightStatus"]+[f"FPrices.{cls}_price" for cls in classes]
     joint_subquery = get_select_query(f"({status_subquery}) AS FStatus",
-                                      ["FStatus.FlightID", "FStatus.FlightStatus"]+[f"FPrices.{cls}_price" for cls in classes],
+                                      joint_columns,
                                       join=(f"({prices_subquery}) AS FPrices", ["FlightID"]))
+    joint_columns = ["Joint.FlightID", "Joint.FlightStatus"]+[f"Joint.{cls}_price" for cls in classes] + ["Cap.TotalSeats"]
+    joint_subquery = get_select_query(f"({joint_subquery}) AS Joint",
+                                      joint_columns,
+                                      join=(f"({capacity_subquery}) AS Cap", ["FlightID"]))
+    joint_columns = ["Joint.FlightID", "Joint.FlightStatus"]+[f"Joint.{cls}_price" for cls in classes] + ["Joint.TotalSeats"] + ["Av.BookedSeats"]
+    joint_subquery = get_select_query(f"({joint_subquery}) AS Joint",
+                                      joint_columns,
+                                      join=(f"({available_subquery}) AS Av", ["FlightID"]))
+    joint_columns = columns + ["F.FlightStatus"]+[f"F.{cls}_price" for cls in classes] + ["F.TotalSeats"] + ["F.BookedSeats"]
     allquery = get_select_query("Flights",
-                                columns + ["F.FlightStatus"]+[f"F.{cls}_price" for cls in classes],
+                                joint_columns,
                                 where=" AND ".join(conditions) if len(conditions)>0 else None,
-                                join=(f"({joint_subquery}) AS F",["FlightID"]),
-                                side_join="LEFT")
+                                join=(f"({joint_subquery}) AS F",["FlightID"]))
     return select(f"({allquery}) AS FF")
 
 def get_available_pilots(take_off_time: datetime,

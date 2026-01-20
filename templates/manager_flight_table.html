@@ -120,11 +120,7 @@
                         <td class="datetime">{{ flight.TakeOffTime|datetime('%d/%m/%Y %H:%M') }}</td>
                         <td class="aircraft">{{ flight.PlainID }}</td>
                         <td class="status">
-                            {% if flight.IsDeleted == 1 %}
-                                <span class="status-badge cancelled">Cancelled</span>
-                            {% else %}
-                                <span class="status-badge active">Active</span>
-                            {% endif %}
+                            <span class="status-badge active">{{ flight.FlightStatus }}</span>
                         </td>
                         <td class="capacity">
                             <span class="capacity-info">{{ flight.BookedSeats or 0 }}/{{ flight.TotalSeats or '--' }}</span>

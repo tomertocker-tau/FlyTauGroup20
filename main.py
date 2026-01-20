@@ -4,7 +4,7 @@ from datetime import date, timedelta, datetime
 import secrets
 import os
 from utils import *
-
+import calendar
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = secrets.token_hex(32)
@@ -790,12 +790,28 @@ def manager_flight_table():
 
     filters = {}
     if request.method == 'POST':
-        filters['source'] = request.form.get('source_filter')
-        filters['destination'] = request.form.get('destination_filter')
+        filters['source_field'] = request.form.get('source_filter')
+        filters['destination_field'] = request.form.get('destination_filter')
         filters['flight_id'] = request.form.get('flight_number')
         filters['status'] = request.form.get('status_filter')
+        html_month_input = request.form.get('month_filter')
+        if html_month_input:
+            # 1. Parse the input string to get year and month integers
+            year_month_obj = datetime.strptime(html_month_input, "%Y-%m")
+            year = year_month_obj.year
+            month = year_month_obj.month
 
-    flights = find_flights_by(filters)
+            # 2. Determine the number of days in the specific month and year
+            # calendar.monthrange returns a tuple: (weekday of first day, number of days in month)
+            num_days = calendar.monthrange(year if month > 1 else year - 1, month-1 if month > 1 else 12)[1]
+
+            # 3. Create the start and end datetime objects
+            filters["before_time"] = datetime(year if month < 12 else year + 1, month+1 if month < 12 else 1, 1, 0, 0, 0)
+            filters["after_time"] = datetime(year if month > 1 else year - 1, month-1 if month > 1 else 12, num_days, 23, 59, 59)
+    else:
+        html_month_input = None
+
+    flights = find_flights_by(**filters)
     sources = get_all_fields()
     destinations = [
         r["DestinationField"]
@@ -820,8 +836,11 @@ def manager_flight_table():
         )
     return render_template("manager_flight_table.html", flights=flights, sources=sources,
     destinations=destinations,
-    source_filter=filters.get('source'),
-    destination_filter=filters.get('destination'))
+    source_filter=filters.get('source_field'),
+    destination_filter=filters.get('destination_field'),
+                           status_filter=filters.get('status'),
+                           flight_number_filter=filters.get('flight_id'),
+                           month_filter=html_month_input)
 
 
 @app.route('/delete_flight/<flight_id>')

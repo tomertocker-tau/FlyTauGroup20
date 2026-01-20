@@ -94,7 +94,7 @@ def flight_status_query():
                             ["FS.FlightID"],
                             cases={
                                 "FS.IsDeleted=1": "'Deleted'",
-                                "FS.IsDeleted=0 AND FS.TotalAvailableSeats=0": "'Occupied'",
+                                "FS.IsDeleted=0 AND FS.TotalAvailableSeats=0": "'Full Capacity'",
                                 "FS.IsDeleted=0 AND FS.TotalAvailableSeats>0 AND FS.TakeOffTime<=NOW()": "'Complete'",
                                 "ELSE": "'Active'",
                                 "AS": "FlightStatus"
