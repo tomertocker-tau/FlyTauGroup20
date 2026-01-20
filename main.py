@@ -472,6 +472,10 @@ def add_flight_step3():
     required_pilots = 3 if plane_size == 'Large' else 2
     required_attendants = 6 if plane_size == 'Large' else 3
 
+    is_small_plane = plane_size == 'Small'
+    if is_small_plane:
+        classes = [c for c in classes if c['ClassName'] != 'Business']
+
     return render_template("add_flight_step3.html",
                            pilots=available_pilots,
                            attendants=available_attendants,
@@ -509,7 +513,7 @@ def add_flight_step4():
 
     if all_available_planes:
         for plane in all_available_planes:
-            if str(plane['PlaneID']) == target_id:
+            if str(plane['PlainID']) == target_id:
                 selected_plane = plane
                 break
 
@@ -538,6 +542,20 @@ def add_flight_step4():
 
     if request.method == 'POST':
         try:
+
+            attendant_ids = flight_data.get('selected_attendants') or []
+            pilot_ids = flight_data.get('selected_pilots') or []
+
+            if not attendant_ids or not pilot_ids:
+                missing = []
+                if not pilot_ids:
+                    missing.append("pilots")
+                if not attendant_ids:
+                    missing.append("attendants")
+
+                flash(f"Cannot add flight without {' and '.join(missing)}.", "error")
+                return redirect(url_for('add_flight_step4'))
+
             # יצירת הטיסה
             flight_id = insert_flight(
                 plain_id=flight_data['selected_plane'],
@@ -551,6 +569,12 @@ def add_flight_step4():
             if pricing:
                 plain_id = flight_data['selected_plane']
                 insert_flight_prices(flight_id, plain_id, list(pricing.items()))
+
+            # הוספת דיילים שעובדים בטיסה
+            insert_working_attendants(flight_id, attendant_ids)
+
+            # הוספת טייסים שעובדים בטיסה
+            insert_working_pilots(flight_id, pilot_ids)
 
             session.pop('flight_data', None)
             flash('Flight added successfully!', 'success')
@@ -586,8 +610,16 @@ def manager_flight_table():
         filters['flight_id'] = request.form.get('flight_number')
         filters['status'] = request.form.get('status_filter')
 
-    flights = find_flights_by()
-
+    flights = find_flights_by(filters)
+    sources = get_all_fields()
+    destinations = [
+        r["DestinationField"]
+        for r in select(
+            "Routes",
+            ["DestinationField"],
+            group_by=["DestinationField"]
+        )
+    ]
 
     for flight in flights:
         flight_time = flight['TakeOffTime']
@@ -601,7 +633,10 @@ def manager_flight_table():
                 time_diff > timedelta(hours=72) and
                 flight.get('IsDeleted', 0) == 0
         )
-    return render_template("manager_flight_table.html", flights=flights)
+    return render_template("manager_flight_table.html", flights=flights, sources=sources,
+    destinations=destinations,
+    source_filter=filters.get('source'),
+    destination_filter=filters.get('destination'))
 
 
 @app.route('/delete_flight/<flight_id>')
