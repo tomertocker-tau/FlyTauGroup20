@@ -1,69 +1,137 @@
 {% extends "layout.html" %}
 
+{% block title %}Sign Up | FLYTAU{% endblock %}
+
 {% block content %}
-<div class="page-container">
-    
-    <div class="auth-box">
-        <div class="auth-header">
-            <h2>Sign up</h2>
-            <p>Join FlyTau today</p>
-        </div>
-
-        <form action="/login_new" method="POST" class="auth-form">
-
-            <div class="form-group">
-                <label for="FirstName">First Name (Eng)</label>
-                <input type="text" id="FirstName" name="First_name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="LastName">Last Name (Eng)</label>
-                <input type="text" id="LastName" name="Last_name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="Email">Email:</label>
-                <input type="email" id="Email" name="email" required>
-            </div>
-
-            <div class="form-group">
-                <label for="Birthdate">Birthdate:</label>
-                <input type="date" id="Birthdate" name="date_of_birth" required>
-            </div>
-
-            <div class="form-group">
-                <label for="Passport_num">Passport Number:</label>
-                <input type="number" id="Passport_num" name="passport_num" required>
-            </div>
-
-           <div class="form-group">
-                <label for="phone_count">How many phone numbers?</label>
-                <input type="number" id="phone_count" name="phone_count"
-                    min="1" max="5" required
-                    value="{{ phone_count if phone_count }}">
-           </div>
-           {% if phone_count %}
-                <div class="form-group">
-                    <label>Phone Number(s):</label>
-                    {% for i in range(phone_count) %}
-                        <input type="tel" name="phones" placeholder="Phone {{ i + 1 }}" required>
-                    {% endfor %}
+<div class="dashboard-container">
+    <div class="signup-container" style="display: flex; justify-content: center;">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-icon">
+                    <i class="fas fa-user-plus"></i>
                 </div>
-           {% endif %}
-
-            <div class="form-group">
-                <label for="Password">Password:</label>
-                <input type="password" id="Password" name="password" required>
+                <h1>Join FLYTAU</h1>
+                <p>Create your account and start exploring the world</p>
             </div>
 
-            <input type="submit" value="register" class="btn-full-width btn-signup">
+            <form action="{{ url_for('signup_new') }}" method="POST" class="auth-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="FirstName"><i class="fas fa-user"></i> First Name</label>
+                        <input type="text" id="FirstName" name="First_name" required class="form-control"
+                               placeholder="Enter your first name">
+                    </div>
 
-        </form>
+                    <div class="form-group">
+                        <label for="LastName"><i class="fas fa-user"></i> Last Name</label>
+                        <input type="text" id="LastName" name="Last_name" required class="form-control"
+                               placeholder="Enter your last name">
+                    </div>
 
-        <div class="auth-footer">
-            <p>Already have an account? <a href="/login">Login here</a></p>
+                    <div class="form-group">
+                        <label for="Email"><i class="fas fa-envelope"></i> Email Address</label>
+                        <input type="email" id="Email" name="email" required class="form-control"
+                               placeholder="Enter your email address">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Birthdate"><i class="fas fa-birthday-cake"></i> Date of Birth</label>
+                        <input type="date" id="Birthdate" name="date_of_birth" required class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Passport_num"><i class="fas fa-id-card"></i> Passport Number</label>
+                        <input type="text" id="Passport_num" name="passport_num" required class="form-control"
+                               placeholder="Enter passport number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password"><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="password" name="password" required class="form-control"
+                               placeholder="Create a strong password">
+                    </div>
+                </div>
+
+                <div class="phone-section">
+                    <div class="form-group">
+                        <label for="phone_count"><i class="fas fa-phone"></i> How many phone numbers?</label>
+                        <select id="phone_count" name="phone_count" class="form-control" onchange="updatePhoneFields()">
+                            {% for i in range(1, 11) %}
+                            <option value="{{ i }}" {{ 'selected' if phone_count == i else '' }}>
+                                {{ i }} Phone Number{{ 's' if i > 1 else '' }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="phone-inputs" class="phone-inputs">
+                        {% if phone_count %}
+                            {% for i in range(phone_count) %}
+                            <div class="form-group">
+                                <label for="phone_{{ i+1 }}">Phone {{ i+1 }}</label>
+                                <input type="tel" id="phone_{{ i+1 }}" name="phones" required class="form-control"
+                                       placeholder="Enter phone number {{ i+1 }}">
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="form-group">
+                                <label for="phone_1">Phone 1</label>
+                                <input type="tel" id="phone_1" name="phones" required class="form-control"
+                                       placeholder="Enter phone number">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-large auth-submit">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account?</p>
+                <a href="{{ url_for('login_new') }}" class="btn btn-outline auth-link">
+                    <i class="fas fa-sign-in-alt"></i> Sign In Instead
+                </a>
+            </div>
+
+            <div class="benefits-section">
+                <h4>Why Join FLYTAU?</h4>
+                <div class="benefits-list">
+                    <div class="benefit-item">
+                        <i class="fas fa-check"></i>
+                        <span>Faster booking process</span>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="fas fa-check"></i>
+                        <span>Track all your flights</span>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="fas fa-check"></i>
+                        <span>Exclusive member deals</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-
 </div>
+
+<script>
+function updatePhoneFields() {
+    const phoneCount = parseInt(document.getElementById('phone_count').value);
+    const phoneInputs = document.getElementById('phone-inputs');
+
+    let html = '';
+    for (let i = 1; i <= phoneCount; i++) {
+        html += `
+            <div class="form-group">
+                <label for="phone_${i}">Phone ${i}</label>
+                <input type="tel" id="phone_${i}" name="phones" required class="form-control"
+                       placeholder="Enter phone number ${i}">
+            </div>
+        `;
+    }
+    phoneInputs.innerHTML = html;
+}
+</script>
 {% endblock %}

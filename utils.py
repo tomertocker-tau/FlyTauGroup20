@@ -341,8 +341,8 @@ def find_and_set_complete(is_signed_up : bool = False):
     clients = select(table_name, [f"{table_name}.OrderID"],
                      join=("Flights", ["FlightID"]),
                      where=f"Flights.TakeOffTime<='{datetime.now().__str__().split()[0]}' "
-                           f"AND Flights.OrderStatus!='Customer_Cancelled' "
-                           f"AND Flights.OrderStatus!='System_Cancelled' ")
+                           f"AND  {table_name}.OrderStatus!='Customer_Cancelled' "
+                           f"AND  {table_name}.OrderStatus!='System_Cancelled' ")
     for client in clients:
         update(table_name, {"OrderStatus": "'Complete'"}, where=f"{table_name}.OrderID={client['OrderID']}")
 

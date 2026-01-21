@@ -1,0 +1,716 @@
+{% extends "layout.html" %}
+
+{% block title %}Management Reports - FLYTAU{% endblock %}
+
+{% block content %}
+
+<style>
+    /* =========================================
+       Management Reports Page Styles
+       ========================================= */
+
+    .reports-container {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    /* Page Header */
+    .reports-header {
+        background: linear-gradient(135deg, #0066CC 0%, #003d7a 100%);
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 40px;
+        color: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .reports-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .reports-header p {
+        font-size: 1.1rem;
+        opacity: 0.95;
+        margin: 0;
+    }
+
+    /* Summary Cards Grid */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .summary-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        transition: transform 0.3s, box-shadow 0.3s;
+        border-left: 5px solid #0066CC;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .summary-card-icon {
+        font-size: 2.5rem;
+        color: #0066CC;
+        margin-bottom: 15px;
+    }
+
+    .summary-card-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #0066CC;
+        margin-bottom: 5px;
+    }
+
+    .summary-card-label {
+        font-size: 1rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    /* Report Sections */
+    .report-section {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+
+    .report-section h2 {
+        color: #0066CC;
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .report-section .report-description {
+        color: #6c757d;
+        font-size: 1rem;
+        margin-bottom: 30px;
+        line-height: 1.6;
+    }
+
+    /* Chart Container */
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 30px;
+    }
+
+    /* Tables */
+    .report-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 20px;
+    }
+
+    .report-table thead {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .report-table th {
+        padding: 15px;
+        text-align: left;
+        color: #495057;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .report-table th:first-child {
+        border-top-left-radius: 10px;
+    }
+
+    .report-table th:last-child {
+        border-top-right-radius: 10px;
+    }
+
+    .report-table tbody tr {
+        transition: background 0.2s;
+    }
+
+    .report-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .report-table td {
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        color: #212529;
+    }
+
+    .report-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Badges and Tags */
+    .badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .badge-info {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    /* Loading Spinner */
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+
+    .loading i {
+        font-size: 3rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .reports-header h1 {
+            font-size: 2rem;
+        }
+
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-container {
+            height: 300px;
+        }
+
+        .report-section {
+            padding: 20px;
+        }
+    }
+
+    /* Print Styles */
+    @media print {
+        .reports-header {
+            background: white !important;
+            color: black !important;
+            border: 2px solid #0066CC;
+        }
+
+        .summary-card {
+            break-inside: avoid;
+        }
+
+        .report-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+<div class="reports-container">
+
+    <!-- Page Header -->
+    <div class="reports-header">
+        <h1>
+            <i class="fas fa-chart-line"></i>
+            Management Reports & Analytics
+        </h1>
+        <p>Comprehensive business intelligence dashboard for FLYTAU operations</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-card-icon">
+                <i class="fas fa-plane-departure"></i>
+            </div>
+            <div class="summary-card-value">{{ summary.total_flights }}</div>
+            <div class="summary-card-label">Total Flights</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-icon">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <div class="summary-card-value">{{ summary.active_orders }}</div>
+            <div class="summary-card-label">Active Orders</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="summary-card-value">${{ "%.2f"|format(summary.total_revenue) }}</div>
+            <div class="summary-card-label">Total Revenue</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-icon">
+                <i class="fas fa-plane"></i>
+            </div>
+            <div class="summary-card-value">{{ summary.fleet_size }}</div>
+            <div class="summary-card-label">Fleet Size</div>
+        </div>
+    </div>
+
+    <!-- Report 1: Average Flight Occupancy -->
+    <div class="report-section">
+        <h2>
+            <i class="fas fa-users"></i>
+            Flight Occupancy Analysis
+        </h2>
+        <p class="report-description">
+            Average occupancy rate for completed flights, indicating how efficiently we're filling our aircraft capacity.
+        </p>
+
+        <div class="chart-container">
+            <canvas id="occupancyChart"></canvas>
+        </div>
+
+        <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <div style="font-size: 3rem; font-weight: 800; color: #0066CC;">
+                {{ "%.2f"|format(occupancy.Average_Occupancy_Percent) }}%
+            </div>
+            <div style="font-size: 1.2rem; color: #6c757d; margin-top: 10px;">
+                Average Flight Occupancy
+            </div>
+        </div>
+    </div>
+
+    <!-- Report 2: Revenue Breakdown -->
+    <div class="report-section">
+        <h2>
+            <i class="fas fa-chart-pie"></i>
+            Revenue Breakdown by Aircraft
+        </h2>
+        <p class="report-description">
+            Revenue analysis segmented by manufacturer, aircraft size, and class type. Shows guaranteed revenue including cancellation fees.
+        </p>
+
+        <div class="chart-container">
+            <canvas id="revenueChart"></canvas>
+        </div>
+
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Manufacturer</th>
+                    <th>Size</th>
+                    <th>Economy Revenue</th>
+                    <th>Business Revenue</th>
+                    <th>Total Revenue</th>
+                    <th>Business %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in revenue_data %}
+                <tr>
+                    <td><strong>{{ item.Manufacturer }}</strong></td>
+                    <td>
+                        {% if item.Size == 'Large' %}
+                            <span class="badge badge-success">{{ item.Size }}</span>
+                        {% else %}
+                            <span class="badge badge-info">{{ item.Size }}</span>
+                        {% endif %}
+                    </td>
+                    <td>${{ "%.2f"|format(item.Economy_Safe_Revenue) }}</td>
+                    <td>${{ "%.2f"|format(item.Business_Safe_Revenue) }}</td>
+                    <td><strong>${{ "%.2f"|format(item.Total_Safe_Revenue) }}</strong></td>
+                    <td>
+                        {% set business_pct = (item.Business_Safe_Revenue / item.Total_Safe_Revenue * 100) if item.Total_Safe_Revenue > 0 else 0 %}
+                        {{ "%.1f"|format(business_pct) }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Report 3: Employee Work Hours -->
+    <div class="report-section">
+        <h2>
+            <i class="fas fa-user-clock"></i>
+            Employee Work Hours Report
+        </h2>
+        <p class="report-description">
+            Cumulative flight hours for pilots and flight attendants, categorized by short flights (≤6 hours) and long flights (>6 hours).
+        </p>
+
+        <div class="chart-container">
+            <canvas id="employeeHoursChart"></canvas>
+        </div>
+
+        <div style="max-height: 500px; overflow-y: auto;">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Employee ID</th>
+                        <th>Name</th>
+                        <th>Short Flights</th>
+                        <th>Long Flights</th>
+                        <th>Total Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employee_hours[:20] %}
+                    <tr>
+                        <td>
+                            {% if emp.Role == 'Pilot' %}
+                                <span class="badge badge-info">
+                                    <i class="fas fa-user-tie"></i> Pilot
+                                </span>
+                            {% else %}
+                                <span class="badge badge-success">
+                                    <i class="fas fa-user"></i> Attendant
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ emp.EmployeeID }}</td>
+                        <td><strong>{{ emp.FirstName }} {{ emp.LastName }}</strong></td>
+                        <td>{{ "%.2f"|format(emp.Short_Flight_Hours) }}h</td>
+                        <td>{{ "%.2f"|format(emp.Long_Flight_Hours) }}h</td>
+                        <td><strong>{{ "%.2f"|format(emp.Total_Hours) }}h</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Report 4: Cancellation Rate -->
+    <div class="report-section">
+        <h2>
+            <i class="fas fa-ban"></i>
+            Monthly Cancellation Rate
+        </h2>
+        <p class="report-description">
+            Customer cancellation trends by month, helping identify seasonal patterns and service quality issues.
+        </p>
+
+        <div class="chart-container">
+            <canvas id="cancellationChart"></canvas>
+        </div>
+
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Orders</th>
+                    <th>Cancelled Orders</th>
+                    <th>Cancellation Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for month in cancellation_data %}
+                <tr>
+                    <td><strong>{{ month.Order_Month }}</strong></td>
+                    <td>{{ month.Total_Orders }}</td>
+                    <td>{{ month.Cancelled_Orders }}</td>
+                    <td>
+                        {% if month.Cancellation_Rate_Percent < 5 %}
+                            <span class="badge badge-success">{{ "%.2f"|format(month.Cancellation_Rate_Percent) }}%</span>
+                        {% elif month.Cancellation_Rate_Percent < 15 %}
+                            <span class="badge badge-warning">{{ "%.2f"|format(month.Cancellation_Rate_Percent) }}%</span>
+                        {% else %}
+                            <span class="badge badge-danger">{{ "%.2f"|format(month.Cancellation_Rate_Percent) }}%</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Report 5: Plane Activity -->
+    <div class="report-section">
+        <h2>
+            <i class="fas fa-calendar-alt"></i>
+            Monthly Aircraft Activity
+        </h2>
+        <p class="report-description">
+            Detailed activity report for each aircraft including utilization rate and dominant routes.
+        </p>
+
+        <div style="max-height: 600px; overflow-y: auto;">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Aircraft</th>
+                        <th>Month</th>
+                        <th>Executed</th>
+                        <th>Cancelled</th>
+                        <th>Utilization</th>
+                        <th>Dominant Route</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plane in plane_activity %}
+                    <tr>
+                        <td><strong>{{ plane.Manufacturer }} #{{ plane.PlainID }}</strong></td>
+                        <td>{{ plane.Activity_Month }}</td>
+                        <td><span class="badge badge-success">{{ plane.Executed_Flights }}</span></td>
+                        <td><span class="badge badge-danger">{{ plane.Cancelled_Flights }}</span></td>
+                        <td>
+                            {% if plane.Utilization_Percent > 70 %}
+                                <span class="badge badge-success">{{ "%.1f"|format(plane.Utilization_Percent) }}%</span>
+                            {% elif plane.Utilization_Percent > 40 %}
+                                <span class="badge badge-warning">{{ "%.1f"|format(plane.Utilization_Percent) }}%</span>
+                            {% else %}
+                                <span class="badge badge-danger">{{ "%.1f"|format(plane.Utilization_Percent) }}%</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ plane.Dominant_Route }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<script>
+    // Chart Configuration
+    Chart.defaults.font.family = "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    Chart.defaults.font.size = 13;
+
+    // Color Palette
+    const colors = {
+        primary: '#0066CC',
+        success: '#28a745',
+        warning: '#ffc107',
+        danger: '#dc3545',
+        info: '#17a2b8',
+        secondary: '#6c757d',
+        light: '#f8f9fa',
+        dark: '#343a40'
+    };
+
+    // 1. Occupancy Chart (Gauge-style Doughnut)
+    const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+    const occupancyValue = {{ occupancy.Average_Occupancy_Percent }};
+    
+    new Chart(occupancyCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Occupied', 'Empty'],
+            datasets: [{
+                data: [occupancyValue, 100 - occupancyValue],
+                backgroundColor: [colors.primary, colors.light],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed.toFixed(2) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Revenue Chart (Bar Chart)
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    const revenueData = {{ revenue_data | tojson }};
+    
+    new Chart(revenueCtx, {
+        type: 'bar',
+        data: {
+            labels: revenueData.map(item => item.Manufacturer + ' ' + item.Size),
+            datasets: [
+                {
+                    label: 'Economy Revenue',
+                    data: revenueData.map(item => item.Economy_Safe_Revenue),
+                    backgroundColor: colors.info,
+                },
+                {
+                    label: 'Business Revenue',
+                    data: revenueData.map(item => item.Business_Safe_Revenue),
+                    backgroundColor: colors.warning,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: true,
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 3. Employee Hours Chart (Horizontal Bar)
+    const employeeCtx = document.getElementById('employeeHoursChart').getContext('2d');
+    const employeeData = {{ employee_hours[:10] | tojson }};
+    
+    new Chart(employeeCtx, {
+        type: 'bar',
+        data: {
+            labels: employeeData.map(emp => emp.FirstName + ' ' + emp.LastName),
+            datasets: [
+                {
+                    label: 'Short Flights',
+                    data: employeeData.map(emp => emp.Short_Flight_Hours),
+                    backgroundColor: colors.success,
+                },
+                {
+                    label: 'Long Flights',
+                    data: employeeData.map(emp => emp.Long_Flight_Hours),
+                    backgroundColor: colors.primary,
+                }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Hours'
+                    }
+                },
+                y: {
+                    stacked: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // 4. Cancellation Rate Chart (Line Chart)
+    const cancellationCtx = document.getElementById('cancellationChart').getContext('2d');
+    const cancellationData = {{ cancellation_data | tojson }};
+    
+    new Chart(cancellationCtx, {
+        type: 'line',
+        data: {
+            labels: cancellationData.map(item => item.Order_Month),
+            datasets: [{
+                label: 'Cancellation Rate (%)',
+                data: cancellationData.map(item => item.Cancellation_Rate_Percent),
+                borderColor: colors.danger,
+                backgroundColor: colors.danger + '20',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Cancellation Rate: ' + context.parsed.y.toFixed(2) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

@@ -58,7 +58,7 @@
 
         <!-- Fleet Management Section -->
         <div class="dashboard-section">
-            <h2>Fleet Management</h2>
+            <h2>Fleet & Reports</h2>
 
             <div class="action-cards">
                 <div class="mgmt-card">
@@ -68,38 +68,131 @@
                         <p>Add new aircraft to fleet</p>
                     </a>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Quick Stats Section -->
-    <div class="stats-section">
-        <h2>Quick Overview</h2>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <i class="fas fa-plane"></i>
-                <div class="stat-info">
-                    <h3>Total Flights</h3>
-                    <p class="stat-number">{{ total_flights | default('--') }}</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <i class="fas fa-users"></i>
-                <div class="stat-info">
-                    <h3>Active Crew</h3>
-                    <p class="stat-number">{{ active_crew | default('--') }}</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <i class="fas fa-plane-departure"></i>
-                <div class="stat-info">
-                    <h3>Aircraft Fleet</h3>
-                    <p class="stat-number">{{ aircraft_count | default('--') }}</p>
+                <div class="mgmt-card">
+                    <a href="{{ url_for('managers_reports_page') }}" class="mgmt-link">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>Management Reports</h3>
+                        <p>View analytics and business intelligence</p>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Special styling for all cards with lighter, softer colors */
+
+    /* Flight Management Cards - Light Blue tones */
+    .dashboard-section:nth-child(1) .mgmt-card:nth-child(1) {
+        background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+    }
+
+    .dashboard-section:nth-child(1) .mgmt-card:nth-child(1) .mgmt-link {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(1) .mgmt-card:nth-child(1) .mgmt-link i {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(1) .mgmt-card:nth-child(1) .mgmt-link p {
+        color: white;
+        opacity: 0.95;
+    }
+
+    .dashboard-section:nth-child(1) .mgmt-card:nth-child(2) {
+        background: linear-gradient(135deg, #5DADE2 0%, #48A4D6 100%);
+    }
+
+    .dashboard-section:nth-child(1) .mgmt-card:nth-child(2) .mgmt-link {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(1) .mgmt-card:nth-child(2) .mgmt-link i {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(1) .mgmt-card:nth-child(2) .mgmt-link p {
+        color: white;
+        opacity: 0.95;
+    }
+
+    /* Personnel Management Cards - Light Purple/Lavender tones */
+    .dashboard-section:nth-child(2) .mgmt-card:nth-child(1) {
+        background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+    }
+
+    .dashboard-section:nth-child(2) .mgmt-card:nth-child(1) .mgmt-link {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(2) .mgmt-card:nth-child(1) .mgmt-link i {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(2) .mgmt-card:nth-child(1) .mgmt-link p {
+        color: white;
+        opacity: 0.95;
+    }
+
+    .dashboard-section:nth-child(2) .mgmt-card:nth-child(2) {
+        background: linear-gradient(135deg, #AF7AC5 0%, #9B59B6 100%);
+    }
+
+    .dashboard-section:nth-child(2) .mgmt-card:nth-child(2) .mgmt-link {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(2) .mgmt-card:nth-child(2) .mgmt-link i {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(2) .mgmt-card:nth-child(2) .mgmt-link p {
+        color: white;
+        opacity: 0.95;
+    }
+
+    /* Fleet & Reports Cards - Light Orange and Turquoise */
+    .dashboard-section:nth-child(3) .mgmt-card:nth-child(1) {
+        background: linear-gradient(135deg, #F39C12 0%, #E67E22 100%);
+    }
+
+    .dashboard-section:nth-child(3) .mgmt-card:nth-child(1) .mgmt-link {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(3) .mgmt-card:nth-child(1) .mgmt-link i {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(3) .mgmt-card:nth-child(1) .mgmt-link p {
+        color: white;
+        opacity: 0.95;
+    }
+
+    .dashboard-section:nth-child(3) .mgmt-card:nth-child(2) {
+        background: linear-gradient(135deg, #48C9B0 0%, #16A085 100%);
+    }
+
+    .dashboard-section:nth-child(3) .mgmt-card:nth-child(2) .mgmt-link {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(3) .mgmt-card:nth-child(2) .mgmt-link i {
+        color: white;
+    }
+
+    .dashboard-section:nth-child(3) .mgmt-card:nth-child(2) .mgmt-link p {
+        color: white;
+        opacity: 0.95;
+    }
+
+    /* Hover effects for all cards */
+    .mgmt-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+    }
+</style>
 {% endblock %}

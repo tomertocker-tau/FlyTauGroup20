@@ -1,141 +1,446 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>My Account</title>
-</head>
-<body>
+{% extends "layout.html" %}
 
-<h2>Search Flight</h2>
+{% block title %}My Dashboard - FLYTAU{% endblock %}
 
-<form id="flight_search_form" action="/flights" method="post">
-  <datalist id="airports_list">
-    {% for airport in airports %}
-      <option value="{{ airport.name }} ({{ airport.code }})"></option>
-    {% endfor %}
-  </datalist>
+{% block content %}
 
-  <table>
-    <tr>
-      <td>
-        <label for="origin">From (Airport):</label><br>
-        <input
-          type="text"
-          id="origin"
-          name="origin"
-          list="airports_list"
-          placeholder="Start typing..."
-          required>
-      </td>
+<style>
+    /* =========================================
+       User Dashboard Page - Main Layout
+       ========================================= */
 
-      <td>
-        <label for="destination">To (Airport):</label><br>
-        <input
-          type="text"
-          id="destination"
-          name="destination"
-          list="airports_list"
-          placeholder="Start typing..."
-          required>
-      </td>
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
 
-      <td>
-        <label for="departure_date">Departure Date:</label><br>
-        <input
-          type="date"
-          id="departure_date"
-          name="departure_date"
-          required>
-      </td>
+    /* =========================================
+       Welcome Section
+       ========================================= */
+    .welcome-section {
+        background: linear-gradient(135deg, #00A8E8 0%, #0066CC 100%);
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 40px;
+        color: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
 
-      <td>
-        <label for="passengers">Passengers:</label><br>
-        <input
-          type="number"
-          id="passengers"
-          name="passengers"
-          min="1"
-          step="1"
-          required>
-      </td>
+    .welcome-section h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
 
-      <td>
-        <br>
-        <button type="submit">Search Flights</button>
-      </td>
-    </tr>
-  </table>
-</form>
+    .welcome-section p {
+        font-size: 1.2rem;
+        opacity: 0.95;
+        margin: 0;
+    }
 
-<hr>
+    /* =========================================
+       Search Form Section - Full Width
+       ========================================= */
+    .search-section {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 40px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
 
-<h2>Purchase History</h2>
+    .search-section h2 {
+        color: #0066CC;
+        font-size: 1.8rem;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-<form id="status_filter_form" method="get" action="/flight-booking">
-  <label for="status">Filter by status:</label>
+    .search-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        align-items: end;
+    }
 
-  <select id="status" name="status">
-    <option value="" {% if not selected_status %}selected{% endif %}>All</option>
-    <option value="Active" {% if selected_status == "Active" %}selected{% endif %}>Active</option>
-    <option value="Completed" {% if selected_status == "Completed" %}selected{% endif %}>Completed</option>
-    <option value="Customer_Cancelled" {% if selected_status == "Customer_Cancelled" %}selected{% endif %}>Customer Cancelled</option>
-    <option value="System_Cancelled" {% if selected_status == "System_Cancelled" %}selected{% endif %}>System Cancelled</option>
-  </select>
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
 
-  <button type="submit">Apply</button>
-</form>
+    .form-group label {
+        font-weight: 600;
+        color: #0056b3;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 
-<br><br>
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e4e8;
+        border-radius: 10px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: all 0.3s;
+        background: white;
+    }
 
-<table border="1" cellpadding="6" cellspacing="0">
-  <thead>
-    <tr>
-      <th>Order Number</th>
-      <th>Source</th>
-      <th>Destination</th>
-      <th>Flight Date</th>
-      <th>Class</th>
-      <th>Seats</th>
-      <th>Price</th>
-      <th>Status</th>
-      <th>Cancel</th>
-    </tr>
-  </thead>
+    .form-control:focus {
+        border-color: #00A8E8;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 168, 232, 0.1);
+    }
 
-  <tbody>
-    {% for row in orders %}
-      <tr>
-        <td>{{ row.OrderID }}</td>
-        <td>{{ row.SourceField }}</td>
-        <td>{{ row.DestinationField }}</td>
-        <td>{{ row.TakeOffTime }}</td>
+    .btn-search {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        color: #000;
+        font-size: 1.1rem;
+        font-weight: bold;
+        padding: 14px 30px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
 
-        <td>{{ row.ClassType }}</td>
-        <td>{{ row.NumSeats }}</td>
+    .btn-search:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
 
-        <td>{{ row.OrderPrice }}</td>
-        <td>{{ row.OrderStatus }}</td>
+    /* =========================================
+       Orders Section
+       ========================================= */
+    .orders-section {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
 
-        <td>
-          {% if row.OrderStatus == "Customer_Cancelled" or row.OrderStatus == "System_Cancelled" %}
-            <button type="button" disabled>Cancel</button>
-          {% else %}
-            <form id="flight_cancel_{{ row.OrderID }}" method="post" action="/cancel_confirmation">
-              <input type="hidden" name="order_id" value="{{ row.OrderID }}">
-              <button type="submit">Cancel</button>
-            </form>
-          {% endif %}
-        </td>
-      </tr>
-    {% endfor %}
+    .orders-section h2 {
+        color: #0066CC;
+        font-size: 1.8rem;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-    {% if orders|length == 0 %}
-      <tr>
-        <td colspan="9" style="text-align:center;">No orders found.</td>
-      </tr>
-    {% endif %}
-  </tbody>
-</table>
+    .orders-table-container {
+        overflow-x: auto;
+    }
 
-</body>
-</html>
+    .orders-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 800px;
+    }
+
+    .orders-table thead {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .orders-table th {
+        padding: 16px;
+        text-align: left;
+        color: #495057;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .orders-table th:first-child {
+        border-top-left-radius: 10px;
+    }
+
+    .orders-table th:last-child {
+        border-top-right-radius: 10px;
+    }
+
+    .orders-table tbody tr {
+        transition: all 0.2s;
+    }
+
+    .orders-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .orders-table td {
+        padding: 16px;
+        border-bottom: 1px solid #e9ecef;
+        color: #212529;
+        font-size: 0.95rem;
+    }
+
+    .orders-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Status Tags */
+    .status-tag {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .st-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .st-cancelled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .st-completed {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    /* Action Buttons */
+    .btn-cancel {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-cancel:hover {
+        background: #c82333;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .btn-disabled {
+        background: #6c757d;
+        color: rgba(255, 255, 255, 0.6);
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: not-allowed;
+        text-decoration: none;
+        display: inline-block;
+        opacity: 0.6;
+    }
+
+    /* No Orders Message */
+    .no-orders {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+
+    .no-orders i {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+
+    .no-orders h3 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        color: #495057;
+    }
+
+    .no-orders p {
+        font-size: 1rem;
+        color: #6c757d;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .search-form {
+            grid-template-columns: 1fr;
+        }
+
+        .welcome-section h1 {
+            font-size: 2rem;
+        }
+
+        .orders-section {
+            padding: 20px;
+        }
+    }
+</style>
+
+<div class="dashboard-container">
+
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+        <h1><i class="fas fa-user-circle"></i> Welcome, {{ user_name }}!</h1>
+        <p>Manage your flights and bookings from your personal dashboard</p>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <h2>
+            <i class="fas fa-search"></i>
+            Search for Flights
+        </h2>
+
+        <form action="{{ url_for('flights') }}" method="POST" class="search-form">
+            <div class="form-group">
+                <label for="source">
+                    <i class="fas fa-plane-departure"></i> From
+                </label>
+                <select name="source" id="source" class="form-control" required>
+                    <option value="">Select Origin</option>
+                    {% for city in airports %}
+                        <option value="{{ city }}">{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="destination">
+                    <i class="fas fa-plane-arrival"></i> To
+                </label>
+                <select name="destination" id="destination" class="form-control" required>
+                    <option value="">Select Destination</option>
+                    {% for city in airports %}
+                        <option value="{{ city }}">{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="takeoff_date">
+                    <i class="fas fa-calendar-alt"></i> Date
+                </label>
+                <input type="date" name="takeoff_date" id="takeoff_date" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="passengers">
+                    <i class="fas fa-users"></i> Passengers
+                </label>
+                <input type="number" name="passengers" id="passengers" value="1" min="1" max="10" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn-search">
+                    <i class="fas fa-search"></i>
+                    Find Flights
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Orders History Section -->
+    <div class="orders-section">
+        <h2>
+            <i class="fas fa-history"></i>
+            My Booking History
+        </h2>
+
+        {% if orders %}
+            <div class="orders-table-container">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-hashtag"></i> Order ID</th>
+                            <th><i class="fas fa-route"></i> Route</th>
+                            <th><i class="fas fa-calendar"></i> Date & Time</th>
+                            <th><i class="fas fa-chair"></i> Seats</th>
+                            <th><i class="fas fa-dollar-sign"></i> Total Price</th>
+                            <th><i class="fas fa-info-circle"></i> Status</th>
+                            <th><i class="fas fa-cog"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        {% set flight_time = order.TakeOffTime %}
+                        {% set current_time = now %}
+                        <tr>
+                            <td><strong>#{{ order.OrderID }}</strong></td>
+                            <td>
+                                <strong>{{ order.SourceField }}</strong>
+                                <i class="fas fa-arrow-right" style="color: #0066CC; margin: 0 5px;"></i>
+                                <strong>{{ order.DestinationField }}</strong>
+                            </td>
+                            <td>{{ order.TakeOffTime }}</td>
+                            <td>{{ order.NumSeats }}</td>
+                            <td><strong>${{ "%.2f"|format(order.OrderPrice) }}</strong></td>
+                            <td>
+                                {% if order.OrderStatus == 'Active' %}
+                                    <span class="status-tag st-active">
+                                        <i class="fas fa-check-circle"></i> Active
+                                    </span>
+                                {% elif 'Cancelled' in order.OrderStatus %}
+                                    <span class="status-tag st-cancelled">
+                                        <i class="fas fa-times-circle"></i> Cancelled
+                                    </span>
+                                {% else %}
+                                    <span class="status-tag st-completed">
+                                        <i class="fas fa-plane"></i> {{ order.OrderStatus }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.OrderStatus == 'Active' %}
+                                    <a href="{{ url_for('cancel_order', order_id=order.OrderID) }}"
+                                       class="btn-cancel">
+                                        <i class="fas fa-ban"></i> Cancel
+                                    </a>
+                                {% else %}
+                                    <span class="btn-disabled">
+                                        <i class="fas fa-lock"></i> Cannot Cancel
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="no-orders">
+                <i class="fas fa-inbox"></i>
+                <h3>No Bookings Yet</h3>
+                <p>Start your journey by searching for flights above!</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+    // Set minimum date to today for flight search
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('takeoff_date');
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.setAttribute('min', today);
+    });
+</script>
+
+{% endblock %}

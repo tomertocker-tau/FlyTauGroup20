@@ -5,6 +5,15 @@ import secrets
 import os
 from utils import *
 import calendar
+from reports_utils import (
+    get_average_occupancy_report,
+    get_revenue_breakdown_report,
+    get_employee_hours_report,
+    get_cancellation_rate_report,
+    get_plane_activity_report,
+    get_summary_statistics
+)
+
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = secrets.token_hex(32)
@@ -28,7 +37,6 @@ def homepagenew():
     """Homepage with search functionality"""
     airports = get_all_fields()
     return render_template("homepagenew.html", airports=airports)
-
 
 @app.route('/search_flights', methods=['GET', 'POST'])
 def search_flights():
@@ -70,8 +78,6 @@ def search_flights():
                                search_params=session.get('search_params'))
 
     return redirect(url_for('homepagenew'))
-
-
 @app.route('/flight_search_results')
 def flight_search_results():
     """Show flight search results page (when accessed directly)"""
@@ -348,10 +354,12 @@ def users_page():
 
     # Get customer orders for display
     user_email = session.get("email")
-    orders = get_customer_history(user_email) if request.args.get('show_orders') else None
+    orders = get_customer_history(user_email)
 
-    return render_template("users_page.html", orders=orders)
+    # --- הוספה חדשה: שליפת שדות תעופה עבור מנוע החיפוש ---
+    airports = get_all_fields()
 
+    return render_template("users_page.html", orders=orders, airports=airports)
 
 @app.route('/managers_page')
 def managers_page():
@@ -365,12 +373,33 @@ def managers_page():
 
 @app.route('/managers_reports_page')
 def managers_reports_page():
-    """Manager statistics reports"""
+    """Manager statistics and reports page with charts"""
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Please login as manager to access this page', 'error')
         return redirect(url_for('login_admin'))
 
-    return render_template("managers_reports_page.html")
+    try:
+        # Get all report data
+        summary = get_summary_statistics()
+        occupancy = get_average_occupancy_report()
+        revenue_data = get_revenue_breakdown_report()
+        employee_hours = get_employee_hours_report()
+        cancellation_data = get_cancellation_rate_report()
+        plane_activity = get_plane_activity_report()
+
+        return render_template(
+            "managers_reports_page.html",
+            summary=summary,
+            occupancy=occupancy,
+            revenue_data=revenue_data,
+            employee_hours=employee_hours,
+            cancellation_data=cancellation_data,
+            plane_activity=plane_activity
+        )
+
+    except Exception as e:
+        flash(f'Error loading reports: {str(e)}', 'error')
+        return redirect(url_for('managers_page'))
 
 
 @app.route('/flights', methods=['GET', 'POST'])
