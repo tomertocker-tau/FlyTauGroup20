@@ -114,15 +114,19 @@
 <style>
 .hero-section {
     width: 100%;
+    height: auto;
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
-    align-items: center;
-    padding: 40px 0;
+    align-items: flex-start; /* תיקון החיתוך */
+    padding: 100px 0 100px 0;
     background-color: #f0f8ff;
     background-image: url("{{ url_for('static', filename='images/sky_background.jpeg') }}");
     background-size: cover;
     background-position: center;
+    background-attachment: fixed;
+    overflow: visible;
 }
 
 .hero-content {
@@ -133,6 +137,7 @@
     width: 100%;
     max-width: 1200px;
     padding: 0 1rem;
+    margin-top: 20px; /* תוספת מרווח פנימי */
     position: relative;
     z-index: 1; /* מוודא שהתוכן מעל הרקע */
 }
@@ -278,9 +283,11 @@
 /* --- Features Section --- */
 .features-section {
     background: white;
-    padding: 3rem 0;
-    margin-top: 3rem;
+    padding: 5rem 0;
+    margin-top: 0;   /* ביטול המרווח שיוצר חיתוך לבן */
     border-top: 1px solid #eee;
+    position: relative;
+    z-index: 2;
 }
 
 .features-row {
