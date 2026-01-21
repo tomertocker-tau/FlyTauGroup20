@@ -136,7 +136,7 @@ def booking_step1_process():
         'first_name': request.form.get('first_name'),
         'last_name': request.form.get('last_name'),
         'email': request.form.get('email'),
-        'phone': request.form.get('phone'),
+        'phone': request.form.get('phone').strip().split(','),
         'passport_number': request.form.get('passport_number'),
         'birth_date': request.form.get('birth_date')
     })
@@ -175,7 +175,7 @@ def booking_step2():
                            booking_data=booking_data)
 
 
-@app.route('/complete_booking', methods=['POST'])
+@app.route('/complete_booking', methods=['POST', 'GET'])
 def complete_booking():
     """Complete the booking - save guest as guest, not customer"""
     if 'booking_data' not in session:
@@ -183,6 +183,7 @@ def complete_booking():
         return redirect(url_for('homepagenew'))
 
     try:
+        session['booking_data'].update({'selected_seats': request.form.getlist('selected_seats')})
         booking_data = session['booking_data']
         email = booking_data['email']
         is_registered = booking_data['is_registered']
@@ -190,18 +191,19 @@ def complete_booking():
         # אם זה אורח - נשאיר אותו אורח ולא ניצור customer
         if not is_registered:
             # הוספה לטבלת Guests (לא Customers)
-            insert_customer_details(
-                First_name=booking_data['first_name'],
-                Last_name=booking_data['last_name'],
-                email=email,
-                passport_num=int(booking_data['passport_number']),
-                date_of_birth=datetime.strptime(booking_data['birth_date'], '%Y-%m-%d').date(),
-                is_signed_up=False  # זה יכניס ל-Guests
-            )
+            if not guest_exists(email):
+                insert_customer_details(
+                    First_name=booking_data['first_name'],
+                    Last_name=booking_data['last_name'],
+                    email=email,
+                    passport_num=int(booking_data['passport_number']),
+                    date_of_birth=datetime.strptime(booking_data['birth_date'], '%Y-%m-%d').date(),
+                    is_signed_up=False  # זה יכניס ל-Guests
+                )
 
             # הוספת טלפון לטבלת GuestsPhoneNumbers
             if booking_data.get('phone'):
-                insert_phones(email, [booking_data['phone']], is_signed_up=False)
+                insert_phones(email, [ph for ph in booking_data['phone'] if is_phone_assigned(email, ph)], is_signed_up=False)
 
         # יצירת הזמנה - בטבלה הנכונה לפי סוג המשתמש
         flights = find_flights_by(flight_id=booking_data['flight_id'])
@@ -219,13 +221,15 @@ def complete_booking():
         seat_data = []
         for seat in booking_data['selected_seats']:
             if '-' in seat:
-                row, letter = seat.split('-')
-                seat_data.append((int(row), letter))
+                row, col = seat.split('-')
+                seat_data.append((int(row), int(col)))
 
         if seat_data:
             # SelectedSeatsGuestOrders אם אורח, SelectedSeatsCustomerOrders אם רשום
             insert_order_seats(order_id, seat_data, is_signed_up=is_registered)
-
+        total_price = get_price(num_seats=len(seat_data),
+                                flight_id=booking_data['flight_id'],
+                                class_type=booking_data['class_type'])
         # ניקוי session
         session.pop('booking_data', None)
         session.pop('search_params', None)
@@ -234,11 +238,11 @@ def complete_booking():
         return render_template("booking_confirmation.html",
                                order_id=order_id,
                                email=email,
-                               total_price=booking_data.get('total_price'))
+                               total_price=total_price)
 
     except Exception as e:
         flash(f'Booking failed: {str(e)}', 'error')
-        return redirect(url_for('complete_booking'))
+        return redirect(url_for('booking_step2'))
 
 @app.route('/login_new', methods=['GET', 'POST'])
 def login_new():
@@ -395,7 +399,9 @@ def flights():
         flights = find_flights_by(
             source_field=origin,
             destination_field=destination,
-            take_off_time=datetime.strptime(departure_date, '%Y-%m-%d') if departure_date else None
+            take_off_time=datetime.strptime(departure_date, '%Y-%m-%d') if departure_date else None,
+            num_seats= int(passengers),
+            status="Active"
         )
 
         return render_template("flight_search_results.html",

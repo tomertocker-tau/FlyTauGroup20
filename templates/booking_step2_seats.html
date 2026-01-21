@@ -54,9 +54,9 @@
                             <span class="row-label">{{ row_index + 1 }}</span>
 
                             {% for col_index in range(available_seats[row_index]|length) %}
-                            {% set seat_letter = "ABCDEF"[col_index] %}
+                            {% set seat_letter = col_index + 1 %}
                             {% set seat_id = (row_index + 1) ~ "-" ~ seat_letter %}
-                            {% set is_occupied = available_seats[row_index][col_index] %}
+                            {% set is_occupied = not available_seats[row_index][col_index] %}
 
                             {% if not is_occupied %}
                             <label class="seat-option">

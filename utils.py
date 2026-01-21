@@ -223,9 +223,9 @@ def find_flights_by(flight_id:Union[str,int] = None,
     capacity_subquery = get_select_query(f"({get_flights_capacity_query()}) AS Cap",
                                          ["Cap.FlightID", "SUM(Cap.Capacity) AS TotalSeats"],
                                          group_by=["Cap.FlightID"])
-    available_subquery = get_select_query(f"({count_available_seats_query()}) AS Av",
-                                          ["Av.FlightID", "SUM(Av.AvailableSeats) AS BookedSeats"],
-                                          group_by=["Av.FlightID"])
+    occupied_subquery = get_select_query(f"({count_occupied_seats_query()}) AS Oc",
+                                          ["Oc.FlightID", "SUM(Oc.OccupiedSeats) AS BookedSeats"],
+                                          group_by=["Oc.FlightID"])
     classes = [cls["ClassType"] for cls in select("Class",
                                                   ["ClassType"],
                                                   group_by=["ClassType"])]
@@ -240,7 +240,7 @@ def find_flights_by(flight_id:Union[str,int] = None,
     joint_columns = ["Joint.FlightID", "Joint.FlightStatus"]+[f"Joint.{cls}_price" for cls in classes] + ["Joint.TotalSeats"] + ["Av.BookedSeats"]
     joint_subquery = get_select_query(f"({joint_subquery}) AS Joint",
                                       joint_columns,
-                                      join=(f"({available_subquery}) AS Av", ["FlightID"]))
+                                      join=(f"({occupied_subquery}) AS Av", ["FlightID"]))
     joint_columns = columns + ["F.FlightStatus"]+[f"F.{cls}_price" for cls in classes] + ["F.TotalSeats"] + ["F.BookedSeats"]
     allquery = get_select_query("Flights",
                                 joint_columns,
@@ -283,8 +283,8 @@ def get_available_seats(flight_id : Union[str, int], class_type: str):
     for r in range(1, rows + 1):
         seats_matrix.append([])
         for c in range(1, cols + 1):
-            isin_occupied = {"Line": r, "SeatLetter": c} in occupied
-            seats_matrix[-1].append(isin_occupied)
+            notin_occupied = {"Line": r, "SeatLetter": c} not in occupied
+            seats_matrix[-1].append(notin_occupied)
     return seats_matrix
 
 def get_price(num_seats: int, flight_id: int, class_type: str):
@@ -372,6 +372,16 @@ def check_admin_login(admin_id: Union[str, int], password: str):
 def assigned_customer_exists(email: str):
     q_find = select("Customers",
                     where=f"Customers.Email='{email}'")
+    return len(q_find) > 0
+
+def guest_exists(email: str):
+    q_find = select("Guests",
+                    where=f"Guests.Email='{email}'")
+    return len(q_find) > 0
+
+def is_phone_assigned(email: str, phone: str, is_signed_up : bool = False):
+    table_name = "CustomersPhoneNumbers" if is_signed_up else "GuestsPhoneNumbers"
+    q_find = select(table_name, where=f"{table_name}.Email='{email}' AND {table_name}.Phone='{phone}'")
     return len(q_find) > 0
 
 def delete_flight(flight_id: Union[str, int]):

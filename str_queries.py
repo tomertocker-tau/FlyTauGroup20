@@ -23,8 +23,14 @@ def occupied_seats_by_flight_and_class_query():
 
 def count_occupied_seats_query():
     union_query = occupied_seats_by_flight_and_class_query()
-    return get_select_query(union_query, ["S.FlightID", "S.ClassType", "S.PlainID", "COUNT(S.OrderID) AS OccupiedSeats"],
+    occupied_query = get_select_query(union_query, ["S.FlightID", "S.ClassType", "S.PlainID", "COUNT(S.OrderID) AS OccupiedSeats"],
                   group_by=["S.FlightID", "S.ClassType", "S.PlainID"])
+    cond_query = get_select_query(f"({occupied_query}) AS OS", ["1"],
+                                  where="OS.FlightID=FP.FlightID AND OS.PlainID=FP.PlainID AND OS.ClassType=FP.ClassType")
+    empty_flights_query = get_select_query(f"FlightPrices AS FP",
+                                           ["FP.FlightID", "FP.ClassType", "FP.PlainID", "0 AS OccupiedSeats"],
+                                           where=f"NOT EXISTS ({cond_query})")
+    return f"({occupied_query}) UNION ({empty_flights_query})"
 
 def get_flights_capacity_query():
     flights_query = get_select_query("Flights",
@@ -37,15 +43,10 @@ def count_available_seats_query():
     capacity_query = get_flights_capacity_query()
     joint_query = get_select_query(f"({occupied_query}) AS OS",
                                    ["OS.FlightID", "OS.ClassType", "OS.PlainID", "OS.OccupiedSeats", "CS.Capacity"],
-                                   join=(f"({capacity_query}) AS CS", ["FlightID","PlainID", "ClassType"]),
-                                   side_join="RIGHT")
+                                   join=(f"({capacity_query}) AS CS", ["FlightID","PlainID", "ClassType"]))
     return get_select_query(f"({joint_query}) AS Joint",
-                            ["Joint.FlightID","Joint.PlainID", "Joint.ClassType"],
-                            cases={
-                                "Joint.OccupiedSeats IS NULL": "Joint.Capacity",
-                                "ELSE": "Joint.Capacity - Joint.OccupiedSeats",
-                                "AS": "AvailableSeats"
-                            })
+                            ["Joint.FlightID","Joint.PlainID", "Joint.ClassType",
+                             "Joint.Capacity - Joint.OccupiedSeats AS AvailableSeats"])
 
 def available_class_prices_query(atleast: int  = 0):
 
