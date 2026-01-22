@@ -37,6 +37,10 @@ Session(app)
 @app.route('/')
 def homepagenew():
     """Homepage with search functionality"""
+    if session.get("user_type", "user") == "admin":
+        return redirect(url_for("managers_page"))
+    if session.get("user_type", "user") == "customer":
+        return redirect(url_for("users_page"))
     airports = get_all_fields()
     return render_template("homepagenew.html", airports=airports)
 
@@ -358,7 +362,8 @@ def users_page():
     # Get customer orders for display
     user_email = session.get("email")
     orders = get_customer_history(user_email)
-
+    for i in range(len(orders)):
+        orders[i]['cancellable'] = (orders[i]['TakeOffTime'] - datetime.now()) > timedelta(hours=36)
     # --- הוספה חדשה: שליפת שדות תעופה עבור מנוע החיפוש ---
     airports = get_all_fields()
 
@@ -456,16 +461,16 @@ def customer_history():
 
     orders = get_customer_history(user_email, status)
     for i in range(len(orders)):
-        orders[i]['cancellable'] = orders[i]['TakeOffTime'] - datetime.now() > timedelta(hours=36)
+        orders[i]['cancellable'] = (orders[i]['TakeOffTime'] - datetime.now()) > timedelta(hours=36)
 
     return render_template("users_page.html", orders=orders, by_status=status)
 
 
 @app.route('/cancel_order/<order_id>')
 def cancel_order(order_id):
-    delete_order(order_id, is_signed_up=session['user_type'] == 'customer')
+    delete_order(order_id, is_signed_up=session.get('user_type') == 'customer')
     flash('Order Cancelled Successfully', 'success')
-    return redirect(url_for('cancel_confirmation', order_id=order_id))
+    return redirect(url_for('users_page' if session.get('user_type') == 'customer' else ''))
 
 
 @app.route('/cancel_confirmation/<order_id>')
