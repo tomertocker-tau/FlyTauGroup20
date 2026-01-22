@@ -435,7 +435,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if order.OrderStatus == 'Active' %}
+                                {% if order.OrderStatus == 'Active' and order.cancellable %}
                                     <a href="{{ url_for('cancel_order', order_id=order.OrderID) }}"
                                        class="btn-cancel">
                                         <i class="fas fa-ban"></i> Cancel
