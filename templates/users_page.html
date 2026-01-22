@@ -294,19 +294,22 @@
 </style>
 
 <div class="dashboard-container">
-
+    {% if airports is defined and airports and orders is defined and orders %}
     <!-- Welcome Section -->
     <div class="welcome-section">
         <h1><i class="fas fa-user-circle"></i> Welcome, {{ user_name }}!</h1>
         <p>Manage your flights and bookings from your personal dashboard</p>
     </div>
+    {% endif %}
 
     <!-- Search Section -->
+    {% if airports is defined and airports %}
     <div class="search-section">
         <h2>
             <i class="fas fa-search"></i>
             Search for Flights
         </h2>
+
 
         <form action="{{ url_for('flights') }}" method="POST" class="search-form">
             <div class="form-group">
@@ -355,15 +358,40 @@
             </div>
         </form>
     </div>
-
+    {% endif %}
     <!-- Orders History Section -->
+
+</div>
+{% if orders is defined %}
     <div class="orders-section">
         <h2>
             <i class="fas fa-history"></i>
             My Booking History
         </h2>
-
-        {% if orders %}
+        <div class="search-section">
+            <form action="{{ url_for('customer_history') }}" method="POST" class="search-form">
+                <div class="form-group">
+                <select name="status" id="status" class="form-control" required>
+                    {% if by_status is not defined %}
+                    <option value="" selected>Select Status</option>
+                        {% set by_status = "" %}
+                    {% else %}
+                    <option value="">Select Status</option>
+                    {% endif %}
+                    {% for status in ['Active', 'Complete', 'System Cancelled', 'Customer Cancelled'] %}
+                    <option value="{{ status }}" {{ "selected" if status == by_status else "" }}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+                    </div>
+                <div class="form-group">
+                <button type="submit" class="btn-search">
+                    <i class="fas fa-search"></i>
+                    Filter Orders
+                </button>
+            </div>
+            </form>
+        </div>
+            {% if orders %}
             <div class="orders-table-container">
                 <table class="orders-table">
                     <thead>
@@ -430,9 +458,9 @@
                 <p>Start your journey by searching for flights above!</p>
             </div>
         {% endif %}
-    </div>
 
-</div>
+    </div>
+{% endif %}
 
 <script>
     // Set minimum date to today for flight search

@@ -3,6 +3,9 @@ from flask_session import Session
 from datetime import date, timedelta, datetime
 import secrets
 import os
+
+from sympy.physics.units import minutes
+
 from utils import *
 import calendar
 from reports_utils import (
@@ -69,7 +72,8 @@ def search_flights():
         flights = find_flights_by(
             source_field=source_field,
             destination_field=destination_field,
-            take_off_time=takeoff_datetime,
+            after_time=takeoff_datetime - timedelta(minutes=1),
+            before_time=takeoff_datetime + timedelta(days=1),
             num_seats=passengers_amount  # כבר מסנן רק טיסות עם מספיק מקומות
         )
 
@@ -406,9 +410,9 @@ def managers_reports_page():
 def flights():
     """Flight search from users page"""
     if request.method == 'POST':
-        origin = request.form.get('origin')
+        origin = request.form.get('source')
         destination = request.form.get('destination')
-        departure_date = request.form.get('departure_date')
+        departure_date = request.form.get('takeoff_date')
         passengers = request.form.get('passengers')
 
         if origin == destination:
@@ -423,12 +427,13 @@ def flights():
             'date': departure_date,
             'passengers': passengers
         }
+        take_off_time = datetime.strptime(departure_date, '%Y-%m-%d') if departure_date else None
 
         # Get flights
         flights = find_flights_by(
             source_field=origin,
             destination_field=destination,
-            take_off_time=datetime.strptime(departure_date, '%Y-%m-%d') if departure_date else None,
+            after_time=take_off_time - timedelta(minutes=1),
             num_seats= int(passengers),
             status="Active"
         )
@@ -440,19 +445,19 @@ def flights():
     return render_template("users_page.html")
 
 
-@app.route("/flight-history")
-def filter_history():
+@app.route("/customer_history", methods=['POST', 'GET'])
+def customer_history():
     """View customer flight history"""
     if 'email' not in session:
         flash('Please login to view history', 'error')
         return redirect(url_for('login_new'))
 
     user_email = session.get("email")
-    status = request.args.get("status")
+    status = request.form.get("status")
 
     orders = get_customer_history(user_email, status)
 
-    return render_template("users_page.html", orders=orders, show_history=True)
+    return render_template("users_page.html", orders=orders, by_status=status)
 
 
 @app.route('/cancel_order/<order_id>')
