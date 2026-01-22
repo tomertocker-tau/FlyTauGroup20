@@ -38,6 +38,10 @@ Session(app)
 @app.route('/')
 def homepagenew():
     """Homepage with search functionality"""
+    if session.get("user_type", "user") == "admin":
+        return redirect(url_for("managers_page"))
+    if session.get("user_type", "user") == "customer":
+        return redirect(url_for("users_page"))
     airports = get_all_fields()
     return render_template("homepagenew.html", airports=airports)
 
@@ -359,7 +363,8 @@ def users_page():
     # Get customer orders for display
     user_email = session.get("email")
     orders = get_customer_history(user_email)
-
+    for i in range(len(orders)):
+        orders[i]['cancellable'] = (orders[i]['TakeOffTime'] - datetime.now()) > timedelta(hours=36)
     # --- הוספה חדשה: שליפת שדות תעופה עבור מנוע החיפוש ---
     airports = get_all_fields()
 
@@ -418,7 +423,7 @@ def flights():
         if origin == destination:
             flash("Source and Destination cannot be the same field.", "error")
             # מחזירים אותו לדף הבית לנסות שוב
-            return redirect(url_for('users_page'))
+            return redirect(url_for('users_page' if session.get('user_type') == 'customer' else ''))
 
         # Store search parameters
         session['search_params'] = {
@@ -442,7 +447,7 @@ def flights():
                                flights=flights,
                                search_params=session.get('search_params'))
 
-    return render_template("users_page.html")
+    return render_template("users_page.html" if session.get('user_type') == 'customer' else "homepagenew.html")
 
 
 @app.route("/customer_history", methods=['POST', 'GET'])
@@ -456,39 +461,17 @@ def customer_history():
     status = request.form.get("status")
 
     orders = get_customer_history(user_email, status)
+    for i in range(len(orders)):
+        orders[i]['cancellable'] = (orders[i]['TakeOffTime'] - datetime.now()) > timedelta(hours=36)
 
     return render_template("users_page.html", orders=orders, by_status=status)
 
 
 @app.route('/cancel_order/<order_id>')
 def cancel_order(order_id):
-    """checking if cancallation is possible"""
-    if 'email' not in session:
-        flash('Please login to cancel orders', 'error')
-        return redirect(url_for('login_new'))
-
-    user_email = session.get('email')
-    order = get_order(order_id, user_email)
-
-    if not order:
-        flash('Order not found', 'error')
-        return redirect(url_for('filter_history'))
-
-    flight_time_str = order["TakeOffTime"]
-    format_string = "%Y-%m-%d %H:%M:%S"
-    flight_time = datetime.strptime(flight_time_str, format_string)
-    current_time = datetime.now()
-    time_diff = flight_time - current_time
-
-    if time_diff <= timedelta(hours=36):
-        flash('Cannot cancel order within 36 hours of flight', 'error')
-        return redirect(url_for('filter_history'))
-
-    if order["OrderStatus"] == "Cancelled":
-        flash('Order is already cancelled', 'error')
-        return redirect(url_for('filter_history'))
-
-    return redirect(url_for('cancel_confirmation', order_id=order_id))
+    delete_order(order_id, is_signed_up=session.get('user_type') == 'customer')
+    flash('Order Cancelled Successfully', 'success')
+    return redirect(url_for('users_page' if session.get('user_type') == 'customer' else ''))
 
 
 @app.route('/cancel_confirmation/<order_id>')
@@ -520,7 +503,7 @@ def confirm_cancel(order_id):
     except Exception as e:
         flash(f'Error cancelling order: {str(e)}', 'error')
 
-    return redirect(url_for('filter_history'))
+    return redirect(url_for('users_page' if session.get('user_type') == 'customer' else ''))
 
 
 @app.route('/flight_board')
