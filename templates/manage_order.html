@@ -1,32 +1,181 @@
 {% extends "layout.html" %}
 
+{% block title %}Manage Booking - FLYTAU{% endblock %}
+
 {% block content %}
-<div class="manage-order-bg">
-    <div class="login-card">
-        <div class="card-header">
-            <h2>Manage Your Booking</h2>
-            <p>View details, select seats, or cancel your flight.</p>
+
+<style>
+    /* Manage Order Page Styles */
+    .manage-container {
+        max-width: 600px;
+        margin: 80px auto;
+        padding: 20px;
+    }
+
+    .manage-card {
+        background: white;
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .manage-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .manage-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #0066CC;
+        margin-bottom: 15px;
+    }
+
+    .manage-header p {
+        font-size: 1.1rem;
+        color: #6c757d;
+    }
+
+    .manage-icon {
+        font-size: 4rem;
+        color: #00A8E8;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid #e1e4e8;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        border-color: #00A8E8;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 168, 232, 0.1);
+    }
+
+    .btn-find-order {
+        width: 100%;
+        background: linear-gradient(135deg, #00A8E8 0%, #0066CC 100%);
+        color: white;
+        font-size: 1.1rem;
+        font-weight: bold;
+        padding: 16px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .btn-find-order:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 102, 204, 0.3);
+    }
+
+    .manage-footer {
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .manage-footer a {
+        color: #6c757d;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .manage-footer a:hover {
+        color: #0066CC;
+    }
+
+    @media (max-width: 768px) {
+        .manage-card {
+            padding: 30px 20px;
+        }
+
+        .manage-header h1 {
+            font-size: 2rem;
+        }
+    }
+</style>
+
+<div class="manage-container">
+    <div class="manage-card">
+        <div class="manage-header">
+            <div class="manage-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <h1>Find Your Booking</h1>
+            <p>Enter your order details to view or manage your flight</p>
         </div>
 
-        <form action="/view_order" method="POST" class="login-form">
+        {% if message %}
+        <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 10px; margin-bottom: 25px; text-align: center;">
+            <i class="fas fa-exclamation-circle"></i> {{ message }}
+        </div>
+        {% endif %}
+
+        <form action="{{ url_for('manage_order') }}" method="POST">
             <div class="form-group">
-                <label for="order_id">Order ID</label>
-                <input type="text" id="order_id" name="order_id" placeholder="e.g., 102030" required>
+                <label for="order_id">
+                    <i class="fas fa-ticket-alt"></i> Order ID
+                </label>
+                <input
+                    type="text"
+                    id="order_id"
+                    name="order_id"
+                    placeholder="Enter your order number (e.g., 102030)"
+                    required
+                >
             </div>
 
             <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" placeholder="name@example.com" required>
+                <label for="email">
+                    <i class="fas fa-envelope"></i> Email Address
+                </label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email (e.g., name@example.com)"
+                    required
+                >
             </div>
 
-            <button type="submit" class="btn-full-width">
-                Find My Order <i class="fas fa-arrow-right"></i>
+            <button type="submit" class="btn-find-order">
+                <i class="fas fa-search"></i>
+                Find My Order
             </button>
         </form>
 
-        <div class="card-footer">
-            <a href="/">Cancel & Return Home</a>
+        <div class="manage-footer">
+            <a href="{{ url_for('homepagenew') }}">
+                <i class="fas fa-arrow-left"></i> Return to Home
+            </a>
         </div>
     </div>
 </div>
+
 {% endblock %}

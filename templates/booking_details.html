@@ -1,68 +1,334 @@
 {% extends "layout.html" %}
 
+{% block title %}Booking Details - FLYTAU{% endblock %}
+
 {% block content %}
-<div class="page-container">
 
-    <div class="order-management-box">
-        <h2>Manage Order Details</h2>
-        {% if order %}
-            <div class="table-container">
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Class Type</th>
-                            <th>Number of Seats</th>
-                            <th>Source Field</th>
-                            <th>Destination Field</th>
-                            <th>Takeoff Time</th>
-                             <th>Order Price</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>{{ order.OrderID }}</td>
-                            <td>{{ order.ClassType }}</td>
-                            <td>{{ order.NumSeats }}</td>
-                            <td>{{ order.SourceField }} $</td>
-                            <td>{{ order.DestinationField }}</td>
-                            <td>{{ order.TakeOffTime }}</td>
-                            <td>{{ order.OrderPrice }}</td>
-                            <td>{{ order.OrderStatus }}</td>
+<style>
+    /* Booking Details Page Styles */
+    .booking-details-container {
+        max-width: 900px;
+        margin: 60px auto;
+        padding: 20px;
+    }
 
-                            <td>
-                                {% if show_cancel_button %}
-                                    <form action="/cancel_confirmation" method="POST">
-                                        <input type="hidden" name="order_id" value="{{ order.OrderID }}">
-                                        <button type="submit" class="btn-cancel">
-                                        Cancel Order
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    <span class="status-badge status-red">
-                                        Less than 36h
-                                    </span>
-                                {% endif %}
-                            </td>
+    .booking-header {
+        background: linear-gradient(135deg, #0066CC 0%, #003d7a 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 20px 20px 0 0;
+        text-align: center;
+    }
 
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+    .booking-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
 
-            <div class="warning-footer">
-                <p class="red-text">
-                    Dear user, please note: Bookings can be cancelled up to 36 hours before flight time.
-                </p>
-            </div>
-        {% else %}
-            <div class="no-order-message">
-                <p>No order was found with the provided details.</p>
-            </div>
-        {% endif %}
+    .booking-header p {
+        font-size: 1.1rem;
+        opacity: 0.95;
+    }
+
+    .booking-card {
+        background: white;
+        border-radius: 0 0 20px 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .booking-content {
+        padding: 40px;
+    }
+
+    .status-banner {
+        padding: 20px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 30px;
+        border-radius: 10px;
+    }
+
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-cancelled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .status-complete {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .detail-section {
+        margin-bottom: 30px;
+    }
+
+    .detail-section h3 {
+        color: #0066CC;
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #6c757d;
+    }
+
+    .detail-value {
+        color: #212529;
+        font-weight: 500;
+    }
+
+    .flight-route {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0066CC;
+        justify-content: center;
+        margin: 20px 0;
+    }
+
+    .flight-route i {
+        color: #00A8E8;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .btn-cancel-booking {
+        flex: 1;
+        background: #dc3545;
+        color: white;
+        padding: 15px 25px;
+        border: none;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-cancel-booking:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
+    }
+
+    .btn-back {
+        flex: 1;
+        background: #6c757d;
+        color: white;
+        padding: 15px 25px;
+        border: none;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all 0.3s;
+    }
+
+    .btn-back:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(108, 117, 125, 0.3);
+    }
+
+    .price-highlight {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .price-highlight .price-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+    }
+
+    .price-highlight .price-value {
+        color: #0066CC;
+        font-size: 2.5rem;
+        font-weight: 800;
+    }
+
+    @media (max-width: 768px) {
+        .booking-content {
+            padding: 25px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .flight-route {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+
+<div class="booking-details-container">
+    <div class="booking-header">
+        <h1><i class="fas fa-ticket-alt"></i> Booking Details</h1>
+        <p>Order #{{ order.OrderID }}</p>
     </div>
 
+    <div class="booking-card">
+        <div class="booking-content">
+
+            <!-- Status Banner -->
+            {% if order.OrderStatus == 'Active' %}
+                <div class="status-banner status-active">
+                    <i class="fas fa-check-circle"></i> Booking Confirmed - Active
+                </div>
+            {% elif 'Cancelled' in order.OrderStatus %}
+                <div class="status-banner status-cancelled">
+                    <i class="fas fa-times-circle"></i> Booking Cancelled
+                </div>
+            {% else %}
+                <div class="status-banner status-complete">
+                    <i class="fas fa-plane"></i> Flight Completed
+                </div>
+            {% endif %}
+
+            <!-- Flight Information -->
+            <div class="detail-section">
+                <h3>
+                    <i class="fas fa-plane-departure"></i>
+                    Flight Information
+                </h3>
+
+                <div class="flight-route">
+                    <span>{{ order.SourceField }}</span>
+                    <i class="fas fa-arrow-right"></i>
+                    <span>{{ order.DestinationField }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">
+                        <i class="fas fa-calendar-alt"></i> Departure Date & Time
+                    </span>
+                    <span class="detail-value">{{ order.TakeOffTime }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">
+                        <i class="fas fa-chair"></i> Number of Seats
+                    </span>
+                    <span class="detail-value">{{ order.NumSeats }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">
+                        <i class="fas fa-layer-group"></i> Class Type
+                    </span>
+                    <span class="detail-value">{{ order.ClassType }}</span>
+                </div>
+            </div>
+
+            <!-- Pricing -->
+            <div class="detail-section">
+                <h3>
+                    <i class="fas fa-dollar-sign"></i>
+                    Pricing
+                </h3>
+
+                <div class="price-highlight">
+                    <div class="price-label">Total Price</div>
+                    <div class="price-value">${{ "%.2f"|format(order.OrderPrice) }}</div>
+                </div>
+            </div>
+
+            <!-- Order Information -->
+            <div class="detail-section">
+                <h3>
+                    <i class="fas fa-info-circle"></i>
+                    Order Information
+                </h3>
+
+                <div class="detail-row">
+                    <span class="detail-label">
+                        <i class="fas fa-hashtag"></i> Order ID
+                    </span>
+                    <span class="detail-value">#{{ order.OrderID }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">
+                        <i class="fas fa-calendar-check"></i> Order Date
+                    </span>
+                    <span class="detail-value">{{ order.OrderDate }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">
+                        <i class="fas fa-flag"></i> Status
+                    </span>
+                    <span class="detail-value">{{ order.OrderStatus }}</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                {% if show_cancel_button %}
+                    <form action="{{ url_for('cancel_order', order_id=order.OrderID) }}" method="GET" style="flex: 1;">
+                        <button type="submit" class="btn-cancel-booking"
+                                onclick="return confirm('Are you sure you want to cancel this booking? A 5% cancellation fee will apply.');">
+                            <i class="fas fa-ban"></i>
+                            Cancel Booking
+                        </button>
+                    </form>
+                {% endif %}
+
+                <a href="{{ url_for('homepagenew') }}" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+
+        </div>
+    </div>
 </div>
+
 {% endblock %}

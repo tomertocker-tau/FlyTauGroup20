@@ -346,17 +346,25 @@ def find_and_set_complete(is_signed_up : bool = False):
     for client in clients:
         update(table_name, {"OrderStatus": "'Complete'"}, where=f"{table_name}.OrderID={client['OrderID']}")
 
-def get_order(order_id:Union[str, int], email: str):
-    '''
 
-    :param order_id:
-    :param email:
-    :return: OrderID, ClassType, NumSeats SourceField,
+def get_order(order_id: Union[str, int], email: str):
+    '''
+    Get order by order_id and email
+
+    :param order_id: Order ID
+    :param email: Customer email
+    :return: OrderID, ClassType, NumSeats, SourceField,
             DestinationField, TakeOffTime, OrderPrice, OrderStatus
     '''
+    try:
+        order_id_int = int(order_id)
+    except (ValueError, TypeError):
+        return {}
+
     for order in get_customer_history(email):
-        if order["OrderID"] == order_id:
+        if order["OrderID"] == order_id_int:
             return order
+
     return {}
 
 def check_login(email: str, password: str):

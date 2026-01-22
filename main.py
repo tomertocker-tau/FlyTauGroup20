@@ -4,7 +4,7 @@ from datetime import date, timedelta, datetime
 import secrets
 import os
 
-from sympy.physics.units import minutes
+
 
 from utils import *
 import calendar
@@ -533,25 +533,35 @@ def flight_board():
 
 @app.route('/manage_order', methods=['GET', 'POST'])
 def manage_order():
+    """Manage order - find and display booking details"""
     if request.method == 'POST':
         order_id = request.form.get('order_id')
         email = request.form.get('email')
 
+        if not order_id or not email:
+            return render_template("manage_order.html",
+                                   message="Please fill in both Order ID and Email")
+
         order = get_order(order_id, email)
 
-        if not order:
-            flash('Order not found', 'error')
-            return render_template("manage_order.html")
+        if order:
+            session['temp_email'] = email  # ← זה החלק החשוב!
+            session['temp_order_id'] = order_id
+            return redirect(url_for('booking_details', order_id=order_id))
 
-        return redirect(url_for('booking_details', order_id=order_id))
+        return render_template("manage_order.html",
+                               message="Order not found. Please check your Order ID and Email.")
 
     return render_template("manage_order.html")
+
 
 
 @app.route('/booking_details/<order_id>')
 def booking_details(order_id):
     if 'email' in session:
         user_email = session.get('email')
+    elif 'temp_email' in session:
+        user_email = session.get('temp_email')
     else:
         flash('Please login or use order lookup', 'error')
         return redirect(url_for('manage_order'))
@@ -560,21 +570,24 @@ def booking_details(order_id):
 
     if not order:
         flash('Booking not found', 'error')
-        return redirect(url_for('users_page'))
+        return redirect(url_for('manage_order'))  # ← שינוי: חזרה ל-manage_order
 
     flight_time_str = order["TakeOffTime"]
-    format_string = "%Y-%m-%d %H:%M:%S"
-    flight_time = datetime.strptime(flight_time_str, format_string)
+
+    if isinstance(flight_time_str, datetime):
+        flight_time = flight_time_str
+    else:
+        format_string = "%Y-%m-%d %H:%M:%S"
+        flight_time = datetime.strptime(flight_time_str, format_string)
+
     current_time = datetime.now()
     time_diff = flight_time - current_time
     is_cancellable = (time_diff > timedelta(hours=36)) and (
-                order["OrderStatus"] not in ["Cancelled", "Customer_Cancelled"])
+            order["OrderStatus"] not in ["Cancelled", "Customer_Cancelled"])
 
     return render_template("booking_details.html",
                            order=order,
                            show_cancel_button=is_cancellable)
-
-
 @app.route('/layout')
 def layout():
     """Layout/template page"""
