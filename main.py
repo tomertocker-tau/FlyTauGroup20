@@ -600,17 +600,22 @@ def add_flight_step1():
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
         return redirect(url_for('login_admin'))
-
+    airports = get_all_fields()
     if request.method == 'POST':
         source_field = request.form.get('source_field')
         destination_field = request.form.get('destination_field')
         takeoff_date = request.form.get('takeoff_date')
         takeoff_time = request.form.get('takeoff_time')
-
+        found_error = False
+        if datetime.strptime(takeoff_date, '%Y-%m-%d') <= datetime.today():
+            flash('Can only Schedule Flight for Future', 'error')
+            found_error = True
         flight_category = get_flight_category(source_field, destination_field)
         if not flight_category:
-            flash('Route not found', 'error')
-            return render_template("add_flight_step1.html")
+            flash('Route does not exist', 'error')
+            found_error = True
+        if found_error:
+            return render_template("add_flight_step1.html", airports=airports)
 
         session['flight_data'] = {
             'source_field': source_field,
@@ -623,8 +628,6 @@ def add_flight_step1():
         }
 
         return redirect(url_for('add_flight_step2'))
-
-    airports = get_all_fields()
     return render_template("add_flight_step1.html", airports=airports)
 
 
@@ -777,7 +780,7 @@ def add_flight_step4():
     selected_pilots = [p for p in available_pilots if str(p['PilotID']) in selected_pilot_ids]
 
     selected_attendant_ids = flight_data.get('selected_attendants', [])
-    selected_attendants = [a for a in available_attendants if str(a['FlightAttendantID']) in selected_attendant_ids]
+    selected_attendants = [a for a in available_attendants if str(a['AttendantID']) in selected_attendant_ids]
 
     if request.method == 'POST':
         try:

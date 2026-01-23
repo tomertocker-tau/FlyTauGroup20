@@ -46,15 +46,15 @@
                     <div class="crew-grid">
                         {% for pilot in pilots %}
                         <div class="crew-card">
-                            <input type="checkbox" id="pilot_{{ pilot.ID }}" name="pilots"
-                                   value="{{ pilot.ID }}" class="crew-checkbox">
-                            <label for="pilot_{{ pilot.ID }}" class="crew-label">
+                            <input type="checkbox" id="pilot_{{ pilot.PilotID }}" name="pilots"
+                                   value="{{ pilot.PilotID }}" class="crew-checkbox">
+                            <label for="pilot_{{ pilot.PilotID }}" class="crew-label">
                                 <div class="crew-avatar">
                                     <i class="fas fa-user-tie"></i>
                                 </div>
                                 <div class="crew-info">
                                     <h4>{{ pilot.FirstName }} {{ pilot.LastName }}</h4>
-                                    <p>ID: {{ pilot.ID }}</p>
+                                    <p>ID: {{ pilot.PilotID }}</p>
                                     {% if pilot.Qualified4LongFlights %}
                                     <div class="qualification-badge">
                                         <i class="fas fa-globe"></i> Long Flight Qualified
@@ -83,15 +83,15 @@
                     <div class="crew-grid">
                         {% for attendant in attendants %}
                         <div class="crew-card">
-                            <input type="checkbox" id="attendant_{{ attendant.ID }}" name="attendants"
-                                   value="{{ attendant.ID }}" class="crew-checkbox">
-                            <label for="attendant_{{ attendant.ID }}" class="crew-label">
+                            <input type="checkbox" id="attendant_{{ attendant.AttendantID }}" name="attendants"
+                                   value="{{ attendant.AttendantID }}" class="crew-checkbox">
+                            <label for="attendant_{{ attendant.AttendantID }}" class="crew-label">
                                 <div class="crew-avatar">
                                     <i class="fas fa-user-friends"></i>
                                 </div>
                                 <div class="crew-info">
                                     <h4>{{ attendant.FirstName }} {{ attendant.LastName }}</h4>
-                                    <p>ID: {{ attendant.ID }}</p>
+                                    <p>ID: {{ attendant.AttendantID }}</p>
                                     {% if attendant.Qualified4LongFlights %}
                                     <div class="qualification-badge">
                                         <i class="fas fa-globe"></i> Long Flight Qualified

@@ -258,7 +258,7 @@ def get_available_pilots(take_off_time: datetime,
                          destination_field: str,
                           is_long_flight: bool):
     q_ans = get_availables_query("Pilots", "PilotID", take_off_time, landing_time, source_field, destination_field, is_long_flight)
-    return [s["PilotID"] for s in select(q_ans)]
+    return select(q_ans, ["Pilots.*"], join=("Pilots", ["PilotID"]))
 
 def get_available_attendants(take_off_time: datetime,
                           landing_time: datetime,
@@ -266,7 +266,7 @@ def get_available_attendants(take_off_time: datetime,
                              destination_field : str,
                           is_long_flight: bool):
     q_ans = get_availables_query("FlightAttendants", "AttendantID", take_off_time, landing_time, source_field, destination_field, is_long_flight)
-    return [s["AttendantID"] for s in select(q_ans)]
+    return select(q_ans, ["FlightAttendants.*"], join=("FlightAttendants", ["AttendantID"]))
 
 
 

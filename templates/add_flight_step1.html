@@ -38,22 +38,11 @@
                     <label for="source_field"><i class="fas fa-plane-departure"></i> Source Airport</label>
                     <select id="source_field" name="source_field" required class="form-control">
                         <option value="">Select source airport</option>
-                        {% if airports %}
                             {% for airport in airports %}
                             <option value="{{ airport }}" {{ 'selected' if source_field == airport else '' }}>
                                 {{ airport }}
                             </option>
                             {% endfor %}
-                        {% else %}
-                            <option value="Tel Aviv">Tel Aviv</option>
-                            <option value="New York">New York</option>
-                            <option value="London">London</option>
-                            <option value="Paris">Paris</option>
-                            <option value="Rome">Rome</option>
-                            <option value="Madrid">Madrid</option>
-                            <option value="Berlin">Berlin</option>
-                            <option value="Amsterdam">Amsterdam</option>
-                        {% endif %}
                     </select>
                 </div>
 
@@ -61,22 +50,11 @@
                     <label for="destination_field"><i class="fas fa-plane-arrival"></i> Destination Airport</label>
                     <select id="destination_field" name="destination_field" required class="form-control">
                         <option value="">Select destination airport</option>
-                        {% if airports %}
                             {% for airport in airports %}
                             <option value="{{ airport }}" {{ 'selected' if destination_field == airport else '' }}>
                                 {{ airport }}
                             </option>
                             {% endfor %}
-                        {% else %}
-                            <option value="Tel Aviv">Tel Aviv</option>
-                            <option value="New York">New York</option>
-                            <option value="London">London</option>
-                            <option value="Paris">Paris</option>
-                            <option value="Rome">Rome</option>
-                            <option value="Madrid">Madrid</option>
-                            <option value="Berlin">Berlin</option>
-                            <option value="Amsterdam">Amsterdam</option>
-                        {% endif %}
                     </select>
                 </div>
 
