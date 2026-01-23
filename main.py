@@ -878,7 +878,7 @@ def manager_flight_table():
 
         flight['can_cancel'] = (
                 time_diff > timedelta(hours=72) and
-                flight.get('IsDeleted', 0) == 0
+                flight['FlightStatus'] != 'Deleted'
         )
     return render_template("manager_flight_table.html", flights=flights, sources=sources,
     destinations=destinations,
