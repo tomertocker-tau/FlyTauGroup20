@@ -2603,19 +2603,19 @@ input[type="number"].form-control {
 }
 
 .seat.available:hover {
-    background: #e3f2fd;
+    fill: #e3f2fd;
     border-color: var(--primary-color);
 }
 
-.seat input[type="checkbox"]:checked + span {
-    background: var(--primary-color);
-    color: white;
+input.seat.seat-available[type="checkbox"]:checked + div.seat.seat-available {
+    fill: var(--primary-color);
 }
 
-.seat.occupied {
+.seat.seat-occupied {
     background: #ffcccc;
     cursor: not-allowed;
     opacity: 0.6;
+    fill: #ffcccc;
 }
 
 .seat-legend {
@@ -2623,6 +2623,16 @@ input[type="number"].form-control {
     justify-content: center;
     gap: 2rem;
     margin-top: 1rem;
+}
+.seat-indicator {
+    width: 40px;
+    height: 40px;
+}
+div.seat-indicator.seat-occupied {
+    background: #ffcccc;
+}
+div.seat-indicator.seat-available {
+    background: #e3f2fd;
 }
 
 /* Tables */
