@@ -324,7 +324,9 @@ def get_customer_history(email: str, status: str = None):
                                 })
     return select(f"({q_orders}) AS O",
                   ["O.*", "Flights.SourceField","Flights.DestinationField","Flights.TakeOffTime"],
-                  join=("Flights", ["FlightID"]))
+                  join=("Flights", ["FlightID"]),
+                  order_by=["O.OrderID"],
+                  order_type="DESC")
 
 def get_assigned_customer(email: str):
     user = select("Customers", where=f"Customers.Email='{email}'")[0]

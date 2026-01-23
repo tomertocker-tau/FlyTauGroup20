@@ -399,7 +399,8 @@
                         <tr>
                             <th><i class="fas fa-hashtag"></i> Order ID</th>
                             <th><i class="fas fa-route"></i> Route</th>
-                            <th><i class="fas fa-calendar"></i> Date & Time</th>
+                            <th><i class="fas fa-calendar"></i> Order Date</th>
+                            <th><i class="fas fa-calendar"></i> Take-off Time</th>
                             <th><i class="fas fa-chair"></i> Seats</th>
                             <th><i class="fas fa-dollar-sign"></i> Total Price</th>
                             <th><i class="fas fa-info-circle"></i> Status</th>
@@ -417,6 +418,7 @@
                                 <i class="fas fa-arrow-right" style="color: #0066CC; margin: 0 5px;"></i>
                                 <strong>{{ order.DestinationField }}</strong>
                             </td>
+                            <td>{{ order.OrderDate }}</td>
                             <td>{{ order.TakeOffTime }}</td>
                             <td>{{ order.NumSeats }}</td>
                             <td><strong>${{ "%.2f"|format(order.OrderPrice) }}</strong></td>
