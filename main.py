@@ -597,7 +597,10 @@ def add_flight_step1():
             flash('Can only Schedule Flight for Future', 'error')
             found_error = True
         flight_category = get_flight_category(source_field, destination_field)
-        if not flight_category:
+        if destination_field and source_field and destination_field == source_field:
+            flash("Cannot plan a flight from field to itself", 'error')
+            found_error = True
+        elif not flight_category:
             flash('Route does not exist', 'error')
             found_error = True
         if found_error:
