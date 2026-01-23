@@ -3,7 +3,7 @@ from typing import Union, Dict, List, Tuple
 from datetime import datetime
 
 def occupied_seats_by_flight_and_class_query(include_cancelled: bool = False):
-    where_customer = "CustomerOrders.OrderStatus NOT IN ('System_Cancelled', 'Customer_Cancelled')" if include_cancelled else None
+    where_customer = "CustomerOrders.OrderStatus NOT IN ('System_Cancelled', 'Customer_Cancelled')" if not include_cancelled else None
     customer_query = get_select_query("CustomerOrders",
                                       [
                                           "SelectedSeatsCustomerOrders.Line",
