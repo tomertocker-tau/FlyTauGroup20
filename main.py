@@ -451,6 +451,7 @@ def flights():
 
         return render_template("flight_search_results.html",
                                flights=flights,
+                               airports=get_all_fields(),
                                search_params=session.get('search_params'))
 
     return render_template("users_page.html" if session.get('user_type') == 'customer' else "homepagenew.html")
