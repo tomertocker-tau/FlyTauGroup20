@@ -40,9 +40,6 @@
                     <a href="{{ url_for('manager_flight_table') }}" class="nav-link">
                         <i class="fas fa-plane"></i> Manage Flights
                     </a>
-                    <a href="{{ url_for('add_attendant') }}" class="nav-link">
-                        <i class="fas fa-user-plus"></i> Add Staff
-                    </a>
                 {% elif session.user_type == 'guest' %}
                     <a href="{{ url_for('search_flights') }}" class="nav-link">
                         <i class="fas fa-search"></i> Search Flights
