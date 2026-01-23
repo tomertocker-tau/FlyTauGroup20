@@ -441,13 +441,16 @@ def flights():
         take_off_time = datetime.strptime(departure_date, '%Y-%m-%d') if departure_date else None
 
         # Get flights
-        flights = find_flights_by(
-            source_field=origin,
-            destination_field=destination,
-            after_time=take_off_time - timedelta(minutes=1) if take_off_time else None,
-            num_seats= int(passengers),
-            status="Active"
-        )
+        try:
+            flights = find_flights_by(
+                source_field=origin,
+                destination_field=destination,
+                after_time=take_off_time - timedelta(minutes=1) if take_off_time else None,
+                num_seats= int(passengers),
+                status="Active"
+            )
+        except Exception as e: # if no route exists in Routes Table
+            flights = []
 
         return render_template("flight_search_results.html",
                                flights=flights,
