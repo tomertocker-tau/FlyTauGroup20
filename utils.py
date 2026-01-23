@@ -55,7 +55,8 @@ def insert_order(email : str,
                  is_signed_up: bool = False):
     table_name = "CustomerOrders" if is_signed_up else "GuestOrders"
     last_id = select("((SELECT OrderID FROM GuestOrders) UNION (SELECT OrderID FROM CustomerOrders)) AS O",
-                     ["MAX(O.OrderID) AS MaxId"])[0]["MaxId"]
+                     ["MAX(O.OrderID) AS MaxId"])
+    last_id = last_id[0]["MaxId"] if last_id and len(last_id) > 0 else 0
     order_id = last_id + 1
     insert(table_name,
            {
@@ -104,7 +105,8 @@ def insert_flight(plain_id: Union[str, int],
                   take_off_time: datetime,
                   source_field: str,
                   destination_field: str):
-    last_id = select("Flights", ["MAX(FlightID) AS MaxId"])[0]["MaxId"]
+    last_id = select("Flights", ["MAX(FlightID) AS MaxId"])
+    last_id = last_id[0]["MaxId"] if last_id and len(last_id) > 0 else 0
     flight_id = last_id + 1
     insert("Flights",
            {

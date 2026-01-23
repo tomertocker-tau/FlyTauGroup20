@@ -145,7 +145,7 @@ def get_availables_query(origin_table: str,
                                      where=f"{shifts_table}.{pivot_column}={origin_table}.{pivot_column}")
      q_no_flights = get_select_query(origin_table, [pivot_column],
                                      where=f"NOT EXISTS ({q_shift_cond})"+
-                                           f" AND {cond_qualify}" if cond_qualify else "")
+                                           f" AND {cond_qualify}" if cond_qualify else f"NOT EXISTS ({q_shift_cond})")
      str_landing_time = landing_time.__str__().split('.')[0]
      str_take_off_time = take_off_time.__str__().split('.')[0]
      q_max_time = get_select_query(f"({q_table}) AS MaxTime",
