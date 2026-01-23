@@ -4,6 +4,7 @@
 <div class="page-container">
 
     <div class="board-box">
+        {% if flights %}
         <h2>Our Flights This Month</h2>
 
         <div class="table-container">
@@ -20,18 +21,18 @@
                 <tbody>
                     {% for flight in flights %}
                     <tr>
-                        <td>{{ flight.datetime }}</td>
-                        <td>{{ flight.origin }}</td>
-                        <td>{{ flight.destination }}</td>
-                        <td>{{ flight.flight_num }}</td>
-                        <td>{{ flight.status }}</td>
+                        <td>{{ flight.TakeOffTime }}</td>
+                        <td>{{ flight.SourceField }}</td>
+                        <td>{{ flight.DestinationField }}</td>
+                        <td>{{ flight.FlightID }}</td>
+                        <td>{{ flight.FlightStatus }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        {% if not flights %}
+        {% else %}
         <div class="no-results">
             <p>No flights found for this month.</p>
         </div>

@@ -248,7 +248,9 @@ def find_flights_by(flight_id:Union[str,int] = None,
                                 joint_columns,
                                 where=" AND ".join(conditions) if len(conditions)>0 else None,
                                 join=(f"({joint_subquery}) AS F",["FlightID"]))
-    return select(f"({allquery}) AS FF")
+    return select(f"({allquery}) AS FF",
+                  order_by=["FF.TakeOffTime"],
+                  order_type="ASC")
 
 def get_available_pilots(take_off_time: datetime,
                           landing_time: datetime,
