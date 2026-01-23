@@ -13,14 +13,14 @@
             <p>Cancellation is subject to cancellation terms.</p>
             
             <h3>The cancellation fee required is: 
-                <span class="price-highlight">{{ (order.PriceOrder * 0.05) | round(2) }} $</span>
+                <span class="price-highlight">{{ (order.OrderPrice * 0.05) | round(2) }} $</span>
             </h3>
             
-            <p>(5% of the total order cost: {{ order.PriceOrder }} $)</p>
+            <p>(5% of the total order cost: {{ order.OrderPrice }} $)</p>
         </div>
 
         <div class="action-buttons">
-            <form action="/delete_order" method="POST">
+            <form action="{{ url_for('cancel_order') }}" method="POST">
                 <input type="hidden" name="order_id" value="{{ order.OrderID}}">
                 <button type="submit" class="btn-full-width btn-cancel">
                     Yes, Cancel Order

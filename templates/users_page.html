@@ -436,10 +436,11 @@
                             </td>
                             <td>
                                 {% if order.OrderStatus == 'Active' and order.cancellable %}
-                                    <a href="{{ url_for('cancel_order', order_id=order.OrderID) }}"
-                                       class="btn-cancel">
-                                        <i class="fas fa-ban"></i> Cancel
-                                    </a>
+                                    <form action="{{ url_for('cancel_confirmation') }}" method="POST">
+                                        <input type="hidden" name="order_id" value="{{ order.OrderID}}">
+                                        <button type="submit" class="btn-cancel">
+                                        Cancel Order</button>
+                                    </form>
                                 {% else %}
                                     <span class="btn-disabled">
                                         <i class="fas fa-lock"></i> Cannot Cancel

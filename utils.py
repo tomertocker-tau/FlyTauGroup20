@@ -9,9 +9,9 @@ def check_if_admin(email: str):
     :param email: an email address
     :return: (True/False) if email is of an admin
     '''
-    find = select("Admins",
-                  ["Admins.Email"],
-                  where=f"Admins.Email={email}")
+    find = select("Managers",
+                  ["Managers.Email"],
+                  where=f"Managers.Email='{email}'")
     return len(find)>0
 
 
@@ -323,7 +323,11 @@ def get_customer_history(email: str, status: str = None):
                   join=("Flights", ["FlightID"]))
 
 def get_assigned_customer(email: str):
-    return select("Customers", where=f"Customers.Email='{email}'")
+    user = select("Customers", where=f"Customers.Email='{email}'")[0]
+    user['Phones'] = ','.join(ph['Phone'] for ph in
+                              select("CustomersPhoneNumbers AS CPN", ["CPN.Phone"],
+                                                           where=f"CPN.Email='{email}'"))
+    return user
 
 
 def delete_order(order_id: Union[str, int], is_signed_up: bool = False):

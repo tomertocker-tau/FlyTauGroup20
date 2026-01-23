@@ -9,14 +9,16 @@ def occupied_seats_by_flight_and_class_query():
                                           "SelectedSeatsCustomerOrders.SeatLetter",
                                           "CustomerOrders.*"
                                       ],
-                                      join=("SelectedSeatsCustomerOrders", ["OrderID"]))
+                                      join=("SelectedSeatsCustomerOrders", ["OrderID"]),
+                                      where="CustomerOrders.OrderStatus NOT IN ('System_Cancelled', 'Customer_Cancelled')")
     guests_query = get_select_query("GuestOrders",
                                     [
                                         "SelectedSeatsGuestOrders.Line",
                                         "SelectedSeatsGuestOrders.SeatLetter",
                                         "GuestOrders.*"
                                     ],
-                                    join=("SelectedSeatsGuestOrders", ["OrderID"]))
+                                    join=("SelectedSeatsGuestOrders", ["OrderID"]),
+                                    where="GuestOrders.OrderStatus NOT IN ('System_Cancelled', 'Customer_Cancelled')")
     union_query = f"(({customer_query}) UNION ({guests_query})) AS S"
     return union_query
 

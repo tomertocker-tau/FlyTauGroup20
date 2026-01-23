@@ -125,9 +125,7 @@ def book_flight(flight_id, class_type):
     user_data = None
     if 'email' in session and session.get('user_type') == 'customer':
         user_email = session.get('email')
-        customer_data = get_assigned_customer(user_email)
-        if customer_data:
-            user_data = customer_data[0]
+        user_data = get_assigned_customer(user_email)
 
     # מעבר ישיר לדף פרטי הנוסעים
     return render_template("booking_step1.html",
@@ -157,8 +155,13 @@ def booking_step1_process():
 
     # בדיקה אם המשתמש רשום
     email = request.form.get('email')
-    is_registered = assigned_customer_exists(email) and len(get_assigned_customer(email)) > 0
+    is_registered = assigned_customer_exists(email)
     session['booking_data']['is_registered'] = is_registered
+    if check_if_admin(email):
+        flash("Admins not allowed to order", "error")
+        return redirect(url_for('book_flight',
+                                flight_id=session['booking_data']['flight_id'],
+                                class_type=session['booking_data']['class_type']))
 
     return redirect(url_for('booking_step2'))
 
@@ -177,7 +180,9 @@ def booking_step2():
 
     # קבלת מקומות פנויים רק למחלקה הנבחרת
     available_seats = get_available_seats(flight_id, class_type)
-
+    total_price = get_price(num_seats=int(passengers_count),
+                            flight_id=booking_data['flight_id'],
+                            class_type=booking_data['class_type'])
     flights = find_flights_by(flight_id=flight_id)
     flight = flights[0] if flights else None
 
@@ -186,6 +191,7 @@ def booking_step2():
                            available_seats=available_seats,
                            class_type=class_type,
                            passengers_count=passengers_count,
+                           total_price=total_price,
                            booking_data=booking_data)
 
 
@@ -423,7 +429,7 @@ def flights():
         if origin == destination:
             flash("Source and Destination cannot be the same field.", "error")
             # מחזירים אותו לדף הבית לנסות שוב
-            return redirect(url_for('users_page' if session.get('user_type') == 'customer' else ''))
+            return redirect(url_for('homepagenew'))
 
         # Store search parameters
         session['search_params'] = {
@@ -467,25 +473,33 @@ def customer_history():
     return render_template("users_page.html", orders=orders, by_status=status)
 
 
-@app.route('/cancel_order/<order_id>')
-def cancel_order(order_id):
-    delete_order(order_id, is_signed_up=session.get('user_type') == 'customer')
-    flash('Order Cancelled Successfully', 'success')
-    return redirect(url_for('users_page' if session.get('user_type') == 'customer' else ''))
+@app.route('/cancel_order', methods=['GET', 'POST'])
+def cancel_order():
+    if request.method == 'POST': 
+        try:
+            order_id = request.form.get('order_id')
+            user_type = session.get('user_type', 'guest')
+            assert user_type in ['guest', 'customer'], "Admins not allowed to cancel orders"
+            delete_order(order_id, is_signed_up=user_type == 'customer')
+            flash('Order cancelled successfully', 'success')
+        except Exception as e:
+            flash(f'Error cancelling order: {str(e)}', 'error')
+
+    return redirect(url_for('homepagenew'))
 
 
-@app.route('/cancel_confirmation/<order_id>')
-def cancel_confirmation(order_id):
+@app.route('/cancel_confirmation', methods=['POST', 'GET'])
+def cancel_confirmation():
     if 'email' not in session:
         flash('Please login to access this page', 'error')
         return redirect(url_for('login_new'))
-
+    order_id = request.form.get('order_id')
     user_email = session.get('email')
     order = get_order(order_id, user_email)
 
     if not order:
         flash('Order not found', 'error')
-        return redirect(url_for('users_page'))
+        return redirect(url_for('homepagenew'))
 
     return render_template("cancel_confirmation.html", order=order)
 
@@ -503,7 +517,7 @@ def confirm_cancel(order_id):
     except Exception as e:
         flash(f'Error cancelling order: {str(e)}', 'error')
 
-    return redirect(url_for('users_page' if session.get('user_type') == 'customer' else ''))
+    return redirect(url_for('homepagenew'))
 
 
 @app.route('/flight_board')

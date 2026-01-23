@@ -49,6 +49,7 @@
                         <label for="first_name"><i class="fas fa-user"></i> First Name</label>
                         <input type="text" id="first_name" name="first_name"
                                value="{{ user_data.EngFirstName if user_data else '' }}"
+                               {{ 'readonly' if user_data else '' }}
                                required class="form-control" placeholder="Enter first name">
                     </div>
 
@@ -56,6 +57,7 @@
                         <label for="last_name"><i class="fas fa-user"></i> Last Name</label>
                         <input type="text" id="last_name" name="last_name"
                                value="{{ user_data.EngLastName if user_data else '' }}"
+                               {{ 'readonly' if user_data else '' }}
                                required class="form-control" placeholder="Enter last name">
                     </div>
 
@@ -63,12 +65,15 @@
                         <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
                         <input type="email" id="email" name="email"
                                value="{{ user_data.Email if user_data else '' }}"
+                               {{ 'readonly' if user_data else '' }}
                                required class="form-control" placeholder="Enter email address">
                     </div>
 
                     <div class="form-group">
                         <label for="phone"><i class="fas fa-phone"></i> Phone Number(s) (Separated with commas)</label>
                         <input type="tel" id="phone" name="phone"
+                               value="{{ user_data.Phones if user_data else '' }}"
+                               {{ 'readonly' if user_data else '' }}
                                required class="form-control" placeholder="Enter phone number">
                     </div>
 
@@ -76,13 +81,15 @@
                         <label for="passport_number"><i class="fas fa-id-card"></i> Passport Number</label>
                         <input type="text" id="passport_number" name="passport_number"
                                value="{{ user_data.PassportNumber if user_data else '' }}"
+                               {{ 'readonly' if user_data else '' }}
                                required class="form-control" placeholder="Enter passport number">
                     </div>
 
                     <div class="form-group">
                         <label for="birth_date"><i class="fas fa-birthday-cake"></i> Date of Birth</label>
                         <input type="date" id="birth_date" name="birth_date"
-                               value="{{ user_data.BirthDate if user_data else '' }}"
+                               value="{{ user_data.Birthdate if user_data else '' }}"
+                               {{ 'readonly' if user_data else '' }}
                                required class="form-control">
                     </div>
                 </div>
