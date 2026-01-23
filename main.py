@@ -277,9 +277,8 @@ def login_new():
             session["user_type"] = "customer"
             flash('Login successful!', 'success')
             return redirect(url_for('users_page'))
-
-        return render_template("login_new.html",
-                               message="Incorrect login details")
+        flash("Incorrect login details", 'error')
+        return render_template("login_new.html")
 
     return render_template("login_new.html")
 
@@ -305,10 +304,11 @@ def signup_new():
 
         # Validation checks
         if assigned_customer_exists(email):
-            return render_template("login_new.html",
-                                   message="You are already registered")
+            flash('Email already registered', 'error')
+            return render_template("login_new.html")
 
         if check_if_admin(email):
+            flash("Admins are not allowed to order flights", 'error')
             return render_template("signup_new.html",
                                    message="Admins are not allowed to order flights")
 
@@ -333,8 +333,8 @@ def signup_new():
             return render_template("login_new.html")
 
         except Exception as e:
-            return render_template("signup_new.html",
-                                   message=f"Registration failed: {str(e)}")
+            flash(f"Registration failed: {str(e)}")
+            return render_template("signup_new.html")
 
     return render_template("signup_new.html")
 
@@ -352,9 +352,8 @@ def login_admin():
             session["user_type"] = "manager"
             flash('Login successful!', 'success')
             return redirect(url_for('managers_page'))
-
-        return render_template("login_admin.html",
-                               message="Incorrect login details")
+        flash('Incorrect login details', 'error')
+        return render_template("login_admin.html")
 
     return render_template("login_admin.html")
 
