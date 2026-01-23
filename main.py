@@ -494,11 +494,14 @@ def cancel_order():
 
 @app.route('/cancel_confirmation', methods=['POST', 'GET'])
 def cancel_confirmation():
-    if 'email' not in session:
+    if 'temp_email' in session:
+        user_email = session.get('temp_email')
+    elif 'email' in session:
+        user_email = session.get('email')
+    else:
         flash('Please login to access this page', 'error')
         return redirect(url_for('login_new'))
     order_id = request.form.get('order_id')
-    user_email = session.get('email')
     order = get_order(order_id, user_email)
 
     if not order:
@@ -506,22 +509,6 @@ def cancel_confirmation():
         return redirect(url_for('homepagenew'))
 
     return render_template("cancel_confirmation.html", order=order)
-
-
-@app.route('/confirm_cancel/<order_id>', methods=['POST'])
-def confirm_cancel(order_id):
-    """(chnging the order status to cancelled!)"""
-    if 'email' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login_new'))
-
-    try:
-        delete_order(order_id, is_signed_up=True)
-        flash('Order cancelled successfully', 'success')
-    except Exception as e:
-        flash(f'Error cancelling order: {str(e)}', 'error')
-
-    return redirect(url_for('homepagenew'))
 
 
 @app.route('/flight_board')
@@ -559,10 +546,10 @@ def manage_order():
 
 @app.route('/booking_details/<order_id>')
 def booking_details(order_id):
-    if 'email' in session:
-        user_email = session.get('email')
-    elif 'temp_email' in session:
+    if 'temp_email' in session:
         user_email = session.get('temp_email')
+    elif 'email' in session:
+        user_email = session.get('email')
     else:
         flash('Please login or use order lookup', 'error')
         return redirect(url_for('manage_order'))
@@ -584,7 +571,7 @@ def booking_details(order_id):
     current_time = datetime.now()
     time_diff = flight_time - current_time
     is_cancellable = (time_diff > timedelta(hours=36)) and (
-            order["OrderStatus"] not in ["Cancelled", "Customer_Cancelled"])
+            order["OrderStatus"] not in ["System_Cancelled", "Customer_Cancelled"])
 
     return render_template("booking_details.html",
                            order=order,

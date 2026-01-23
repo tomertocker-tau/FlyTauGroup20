@@ -312,9 +312,9 @@
             <!-- Action Buttons -->
             <div class="action-buttons">
                 {% if show_cancel_button %}
-                    <form action="{{ url_for('cancel_order', order_id=order.OrderID) }}" method="GET" style="flex: 1;">
-                        <button type="submit" class="btn-cancel-booking"
-                                onclick="return confirm('Are you sure you want to cancel this booking? A 5% cancellation fee will apply.');">
+                    <form action="{{ url_for('cancel_confirmation') }}" method="POST" style="flex: 1;">
+                        <input type="hidden" id="order_id" name="order_id" value="{{ order.OrderID }}">
+                        <button type="submit" class="btn-cancel-booking">
                             <i class="fas fa-ban"></i>
                             Cancel Booking
                         </button>

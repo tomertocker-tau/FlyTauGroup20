@@ -2,7 +2,8 @@ from sql_base import get_select_query, select
 from typing import Union, Dict, List, Tuple
 from datetime import datetime
 
-def occupied_seats_by_flight_and_class_query():
+def occupied_seats_by_flight_and_class_query(include_cancelled: bool = False):
+    where_customer = "CustomerOrders.OrderStatus NOT IN ('System_Cancelled', 'Customer_Cancelled')" if include_cancelled else None
     customer_query = get_select_query("CustomerOrders",
                                       [
                                           "SelectedSeatsCustomerOrders.Line",
@@ -10,7 +11,8 @@ def occupied_seats_by_flight_and_class_query():
                                           "CustomerOrders.*"
                                       ],
                                       join=("SelectedSeatsCustomerOrders", ["OrderID"]),
-                                      where="CustomerOrders.OrderStatus NOT IN ('System_Cancelled', 'Customer_Cancelled')")
+                                      where=where_customer)
+    where_guest = "GuestOrders.OrderStatus!='System_Cancelled' AND GuestOrders.OrderStatus!='Customer_Cancelled'" if not include_cancelled else None
     guests_query = get_select_query("GuestOrders",
                                     [
                                         "SelectedSeatsGuestOrders.Line",
@@ -18,7 +20,7 @@ def occupied_seats_by_flight_and_class_query():
                                         "GuestOrders.*"
                                     ],
                                     join=("SelectedSeatsGuestOrders", ["OrderID"]),
-                                    where="GuestOrders.OrderStatus NOT IN ('System_Cancelled', 'Customer_Cancelled')")
+                                    where=where_guest)
     union_query = f"(({customer_query}) UNION ({guests_query})) AS S"
     return union_query
 

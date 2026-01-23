@@ -305,7 +305,7 @@ def get_customer_history(email: str, status: str = None):
     '''
     find_and_set_complete()
     find_and_set_complete(True)
-    q_seats = occupied_seats_by_flight_and_class_query()
+    q_seats = occupied_seats_by_flight_and_class_query(include_cancelled=True)
     status_condition = f" AND S.OrderStatus='{status}'" if status else ""
     q_with_client = get_select_query(q_seats,
                                      where=f"S.Email='{email}'"+status_condition)
@@ -364,10 +364,8 @@ def get_order(order_id: Union[str, int], email: str):
     :return: OrderID, ClassType, NumSeats, SourceField,
             DestinationField, TakeOffTime, OrderPrice, OrderStatus
     '''
-    try:
+    if isinstance(order_id, str):
         order_id_int = int(order_id)
-    except (ValueError, TypeError):
-        return {}
 
     for order in get_customer_history(email):
         if order["OrderID"] == order_id_int:
