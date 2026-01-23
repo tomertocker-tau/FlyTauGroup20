@@ -1,42 +1,250 @@
 {% extends "layout.html" %}
 
+{% block title %}Cancel Order Confirmation | FLYTAU{% endblock %}
+
 {% block content %}
 <div class="page-container">
-    
-    <div class="auth-box warning-box">
-        <div class="auth-header">
-            <h2 class="red-text">Cancel Order Confirmation</h2>
-            <p>Order ID: {{ order.OrderID }}</p>
+    <div class="confirmation-card warning-card">
+
+        <div class="confirmation-header">
+            <i class="fas fa-file-invoice-dollar warning-icon"></i>
+            <h2 class="warning-title">Cancel Order Confirmation</h2>
+            <p class="flight-id">Order ID: #{{ order.OrderID }}</p>
         </div>
 
-        <div class="cancellation-details">
-            <p>Cancellation is subject to cancellation terms.</p>
-            
-            <h3>The cancellation fee required is: 
-                <span class="price-highlight">{{ (order.OrderPrice * 0.05) | round(2) }} $</span>
-            </h3>
-            
-            <p>(5% of the total order cost: {{ order.OrderPrice }} $)</p>
+        <div class="flight-details">
+            <div class="detail-row">
+                <span class="label">Total Order Cost:</span>
+                <span class="value">{{ order.OrderPrice }} $</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Cancellation Fee (5%):</span>
+                <span class="value" style="color: var(--danger);"> -{{ (order.OrderPrice * 0.05) | round(2) }} $</span>
+            </div>
+            <div class="detail-row" style="border-top: 1px solid #cbd5e0; margin-top: 5px; padding-top: 10px;">
+                <span class="label">Estimated Refund:</span>
+                <span class="value" style="font-size: 1.2em; font-weight: bold;">
+                    {{ (order.OrderPrice * 0.95) | round(2) }} $
+                </span>
+            </div>
+        </div>
+
+        <div class="cancellation-warning">
+            <div class="warning-box">
+                <h3>⚠️ Cancellation Policy Notice</h3>
+                <p>Please note the following terms:</p>
+                <ul>
+                    <li>A <strong>5% cancellation fee</strong> will be deducted from your refund.</li>
+                    <li>The refund will be processed to your original payment method.</li>
+                    <li>This action cannot be undone once confirmed.</li>
+                </ul>
+            </div>
         </div>
 
         <div class="action-buttons">
-            <form action="{{ url_for('cancel_order') }}" method="POST">
-                <input type="hidden" name="order_id" value="{{ order.OrderID}}">
-                <button type="submit" class="btn-full-width btn-cancel">
-                    Yes, Cancel Order
+            <form action="{{ url_for('cancel_order') }}" method="POST" class="cancel-form">
+                <input type="hidden" name="order_id" value="{{ order.OrderID }}">
+                <button type="submit" class="btn btn-danger btn-large btn-full-width">
+                    <i class="fas fa-ban"></i> Yes, Cancel Order
                 </button>
             </form>
 
-            <br>
+            <div class="button-spacing"></div>
 
-            <form action="/booking_details" method="POST">
+            <form action="/booking_details" method="POST" class="cancel-form">
                 <input type="hidden" name="order_id" value="{{ order.OrderID }}">
-                <button type="submit" class="btn-full-width btn-secondary">
-                    Go Back (Don't Cancel)
+                <button type="submit" class="btn btn-secondary btn-large btn-full-width">
+                    <i class="fas fa-arrow-left"></i> Go Back (Don't Cancel)
                 </button>
             </form>
         </div>
     </div>
-
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* העתקתי את ה-CSS מדף ביטול הטיסה כדי שיראה זהה */
+:root {
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+    --space-3xl: 4rem;
+    --radius-lg: 0.5rem;
+    --radius-2xl: 1rem;
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --white: #ffffff;
+    --light-gray: #f8f9fa;
+    --danger: #dc3545;
+    --text-muted: #6c757d;
+    --text-dark: #343a40;
+    --primary-color: #0d6efd;
+}
+
+.page-container {
+    max-width: 600px;
+    margin: var(--space-xl) auto;
+    padding: var(--space-lg);
+}
+
+.confirmation-card {
+    background: var(--white);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-3xl);
+    box-shadow: var(--shadow-xl);
+    border-top: 5px solid var(--danger);
+}
+
+.confirmation-header {
+    text-align: center;
+    margin-bottom: var(--space-2xl);
+    padding-bottom: var(--space-xl);
+    border-bottom: 2px solid #fee2e2;
+}
+
+.warning-icon {
+    font-size: 4rem;
+    color: var(--danger);
+    margin-bottom: var(--space-lg);
+}
+
+.warning-title {
+    color: var(--danger);
+    font-size: 1.8rem;
+    margin-bottom: var(--space-sm);
+    font-weight: 700;
+}
+
+.flight-id {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 0;
+}
+
+.flight-details {
+    background: var(--light-gray);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row .label {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.detail-row .value {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.cancellation-warning {
+    margin-bottom: var(--space-2xl);
+}
+
+.warning-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    border-left: 4px solid var(--danger);
+}
+
+.warning-box h3 {
+    color: var(--danger);
+    margin-bottom: var(--space-md);
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.warning-box p {
+    color: var(--text-dark);
+    margin-bottom: var(--space-sm);
+    font-weight: 500;
+}
+
+.warning-box ul {
+    color: var(--text-dark);
+    padding-left: var(--space-lg);
+    margin-bottom: 0;
+}
+
+.warning-box li {
+    margin-bottom: var(--space-xs);
+}
+
+.action-buttons {
+    text-align: center;
+}
+
+.btn-full-width {
+    width: 100%;
+    display: block;
+}
+
+.btn-large {
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.btn-danger {
+    background-color: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #bb2d3b;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary:hover {
+    background-color: #5c636a;
+}
+
+.button-spacing {
+    height: var(--space-md);
+}
+
+.cancel-form {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: var(--space-md);
+    }
+
+    .confirmation-card {
+        padding: var(--space-xl);
+    }
+
+    .warning-title {
+        font-size: 1.5rem;
+    }
+}
+</style>
 {% endblock %}
