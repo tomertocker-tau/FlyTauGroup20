@@ -426,7 +426,7 @@ def flights():
         departure_date = request.form.get('takeoff_date')
         passengers = request.form.get('passengers')
 
-        if origin == destination:
+        if origin and destination and origin == destination:
             flash("Source and Destination cannot be the same field.", "error")
             # מחזירים אותו לדף הבית לנסות שוב
             return redirect(url_for('homepagenew'))
@@ -444,7 +444,7 @@ def flights():
         flights = find_flights_by(
             source_field=origin,
             destination_field=destination,
-            after_time=take_off_time - timedelta(minutes=1),
+            after_time=take_off_time - timedelta(minutes=1) if take_off_time else None,
             num_seats= int(passengers),
             status="Active"
         )

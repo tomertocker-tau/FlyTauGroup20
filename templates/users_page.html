@@ -316,7 +316,7 @@
                 <label for="source">
                     <i class="fas fa-plane-departure"></i> From
                 </label>
-                <select name="source" id="source" class="form-control" required>
+                <select name="source" id="source" class="form-control">
                     <option value="">Select Origin</option>
                     {% for city in airports %}
                         <option value="{{ city }}">{{ city }}</option>
@@ -328,7 +328,7 @@
                 <label for="destination">
                     <i class="fas fa-plane-arrival"></i> To
                 </label>
-                <select name="destination" id="destination" class="form-control" required>
+                <select name="destination" id="destination" class="form-control">
                     <option value="">Select Destination</option>
                     {% for city in airports %}
                         <option value="{{ city }}">{{ city }}</option>
@@ -340,7 +340,7 @@
                 <label for="takeoff_date">
                     <i class="fas fa-calendar-alt"></i> Date
                 </label>
-                <input type="date" name="takeoff_date" id="takeoff_date" class="form-control" required>
+                <input type="date" name="takeoff_date" id="takeoff_date" class="form-control">
             </div>
 
             <div class="form-group">
