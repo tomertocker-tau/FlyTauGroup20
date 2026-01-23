@@ -1240,9 +1240,11 @@ thead {
     color: var(--text-light);
 }
 
+
+
 th {
     padding: var(--space-xl);
-    text-align: left;
+    text-align: center; /* <--- כאן היה השינוי מ-left ל-center */
     font-weight: 700;
     font-size: 0.95rem;
     text-transform: uppercase;
@@ -1257,27 +1259,18 @@ td {
     padding: var(--space-xl);
     border-bottom: 1px solid var(--gray-200);
     font-weight: 500;
+    text-align: center;
 }
+
+
 
 tbody tr {
-    transition: all var(--transition-base);
-    position: relative;
+    transition: background-color 0.3s ease;
 }
 
-tbody tr::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 0;
-    height: 100%;
-    background: var(--primary-lighter);
-    transition: width var(--transition-base);
-    z-index: -1;
-}
+tbody tr:hover {
+    background-color: var(--primary-lighter);
 
-tbody tr:hover::before {
-    width: 100%;
 }
 
 tbody tr:hover {
