@@ -317,7 +317,8 @@ def users_page():
     if 'email' not in session or session.get('user_type') != 'customer':
         flash('Please login to access this page', 'error')
         return redirect(url_for('login_new'))
-
+    if 'temp_email' in session:
+        session.pop('temp_email')
     # Get customer orders for display
     user_email = session.get("email")
     orders = get_customer_history(user_email)
@@ -420,7 +421,8 @@ def customer_history():
     if 'email' not in session:
         flash('Please login to view history', 'error')
         return redirect(url_for('login_new'))
-
+    if 'temp_email' in session:
+        session.pop('temp_email')
     user_email = session.get("email")
     status = request.form.get("status")
 
@@ -437,7 +439,12 @@ def cancel_order():
         try:
             order_id = request.form.get('order_id')
             user_type = session.get('user_type', 'guest')
+            if session.get("temp_email"):
+                email = session['temp_email']
+            else:
+                email = session['email']
             assert user_type in ['guest', 'customer'], "Admins not allowed to cancel orders"
+            assert assigned_customer_exists(email) or guest_exists(email), f"No Customer {email} exists"
             delete_order(order_id, is_signed_up=user_type == 'customer')
             flash('Order cancelled successfully', 'success')
         except Exception as e:
