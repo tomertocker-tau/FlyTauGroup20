@@ -74,7 +74,7 @@ def get_average_occupancy_report():
 def get_revenue_breakdown_report():
     """
     Get revenue breakdown by manufacturer, plane size, and class
-    Returns: List of dicts with Manufacturer, Size, Economy_Revenue, Business_Revenue, Total_Revenue
+    Returns: List of dicts with Manufacturer, Size, Regular_Revenue, Business_Revenue, Total_Revenue
     """
     # Unified orders from both customer and guest tables
     customer_orders_query = get_select_query(
@@ -95,13 +95,13 @@ def get_revenue_breakdown_report():
     revenue_query = f"""
         SELECT P.Manufacturer, P.Size,
             SUM(CASE 
-                WHEN AllOrders.ClassType = 'Economy' THEN 
+                WHEN AllOrders.ClassType = 'Regular' THEN 
                     CASE 
                         WHEN AllOrders.OrderStatus = 'Customer_Cancelled' THEN FP.Price * 0.05
                         ELSE FP.Price 
                     END
                 ELSE 0 
-            END) AS Economy_Safe_Revenue,
+            END) AS Regular_Safe_Revenue,
 
             SUM(CASE 
                 WHEN AllOrders.ClassType = 'Business' THEN 

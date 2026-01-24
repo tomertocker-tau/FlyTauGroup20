@@ -76,16 +76,16 @@
                     </div>
 
                     <div class="flight-classes-section">
-                        {% if flight.Economy_price %}
+                        {% if flight.Regular_price %}
                         <div class="class-booking-option">
                             <div class="class-info">
-                                <h4><i class="fas fa-chair"></i> Economy Class</h4>
-                                <p class="price-display">${{ flight.Economy_price }}</p>
+                                <h4><i class="fas fa-chair"></i> Regular Class</h4>
+                                <p class="price-display">${{ flight.Regular_price }}</p>
                                 <small>per passenger</small>
                             </div>
-                            <a href="{{ url_for('book_flight', flight_id=flight.FlightID, class_type='Economy') }}"
+                            <a href="{{ url_for('book_flight', flight_id=flight.FlightID, class_type='Regular') }}"
                                class="btn btn-primary">
-                                Book Economy
+                                Book Regular
                             </a>
                         </div>
                         {% endif %}

@@ -337,7 +337,7 @@
                 <tr>
                     <th>Manufacturer</th>
                     <th>Size</th>
-                    <th>Economy Revenue</th>
+                    <th>Regular Revenue</th>
                     <th>Business Revenue</th>
                     <th>Total Revenue</th>
                     <th>Business %</th>
@@ -354,7 +354,7 @@
                             <span class="badge badge-info">{{ item.Size }}</span>
                         {% endif %}
                     </td>
-                    <td>${{ "%.2f"|format(item.Economy_Safe_Revenue) }}</td>
+                    <td>${{ "%.2f"|format(item.Regular_Safe_Revenue) }}</td>
                     <td>${{ "%.2f"|format(item.Business_Safe_Revenue) }}</td>
                     <td><strong>${{ "%.2f"|format(item.Total_Safe_Revenue) }}</strong></td>
                     <td>
@@ -575,8 +575,8 @@
             labels: revenueData.map(item => item.Manufacturer + ' ' + item.Size),
             datasets: [
                 {
-                    label: 'Economy Revenue',
-                    data: revenueData.map(item => item.Economy_Safe_Revenue),
+                    label: 'Regular Revenue',
+                    data: revenueData.map(item => item.Regular_Safe_Revenue),
                     backgroundColor: colors.info,
                 },
                 {

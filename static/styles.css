@@ -1202,7 +1202,7 @@ textarea.form-control {
     box-shadow: var(--shadow-xl);
 }
 
-.class-badge.economy {
+.class-badge.regular {
     background: var(--info);
     color: var(--text-light);
 }

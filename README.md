@@ -38,10 +38,10 @@ The following assumptions were defined and applied during the design and impleme
 
 ### Booking and Flight Assumptions
 1. **Single Class per Booking**  
-   Each booking can include only one flight class (either Economy or Business).
+   Each booking can include only one flight class (either Regular or Business).
 
 2. **Aircraft Class Structure**  
-   Each aircraft contains at most one Economy class and one Business class (if Business class exists).
+   Each aircraft contains at most one Regular class and one Business class (if Business class exists).
 
 3. **Uniform Ticket Pricing**  
    All tickets for the same flight and the same class have an identical price.

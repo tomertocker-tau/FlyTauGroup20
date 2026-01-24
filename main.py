@@ -549,35 +549,41 @@ def add_flight_step1():
         flight_category = get_flight_category(source_field, destination_field)
         flight_duration = select("Routes", ["Routes.FlightDuration"],
                                  where=f"Routes.SourceField='{source_field}' AND "
-                                       f"Routes.DestinationField='{destination_field}'")[0]["FlightDuration"]
-        landing_datetime = takeoff_datetime + flight_duration
-        if destination_field and source_field and destination_field == source_field:
-            flash("Cannot plan a flight from field to itself", 'error')
-            found_error = True
-        elif not flight_category:
-            flash('Route does not exist', 'error')
+                                       f"Routes.DestinationField='{destination_field}'")
+        if len(flight_duration) == 0:
+            flash(f"No route from {source_field} to {destination_field}", 'error')
             found_error = True
         else:
-            available_plains = find_available_plains(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
-            available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
-            available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
-            if len(available_plains) == 0:
-                flash("No plain available", "error")
+            flight_duration = flight_duration[0]["FlightDuration"]
+            landing_datetime = takeoff_datetime + flight_duration
+
+            if destination_field and source_field and destination_field == source_field:
+                flash("Cannot plan a flight from field to itself", 'error')
                 found_error = True
-            if flight_category == "Long" or all(pl["Size"]=="Large" for pl in available_plains):
-                if len(available_attendants) <= 5:
-                    flash("Not enough attendants available", "error")
+            elif not flight_category:
+                flash('Route does not exist', 'error')
+                found_error = True
+            else:
+                available_plains = find_available_plains(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
+                available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
+                available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
+                if len(available_plains) == 0:
+                    flash("No plain available", "error")
                     found_error = True
-                if len(available_pilots) <= 2:
-                    flash("Not enough pilots available", "error")
-                    found_error = True
-            elif flight_category == "Short":
-                if len(available_attendants) <= 2:
-                    flash("Not enough attendants available", "error")
-                    found_error = True
-                if len(available_pilots) <= 1:
-                    flash("Not enough pilots available", "error")
-                    found_error = True
+                if flight_category == "Long" or all(pl["Size"]=="Large" for pl in available_plains):
+                    if len(available_attendants) <= 5:
+                        flash("Not enough attendants available", "error")
+                        found_error = True
+                    if len(available_pilots) <= 2:
+                        flash("Not enough pilots available", "error")
+                        found_error = True
+                elif flight_category == "Short":
+                    if len(available_attendants) <= 2:
+                        flash("Not enough attendants available", "error")
+                        found_error = True
+                    if len(available_pilots) <= 1:
+                        flash("Not enough pilots available", "error")
+                        found_error = True
 
         if found_error:
             return render_template("add_flight_step1.html", airports=airports)
@@ -701,7 +707,7 @@ def add_flight_step3():
     selected_plane_id = session['flight_data'].get('selected_plane')
     classes = []
     if selected_plane_id:
-        classes = [{'ClassName': 'Economy'}, {'ClassName': 'Business'}]
+        classes = [{'ClassName': 'Regular'}, {'ClassName': 'Business'}]
 
     plane_size = session["flight_data"]["plain_size"]
     required_pilots = 3 if plane_size == 'Large' else 2
