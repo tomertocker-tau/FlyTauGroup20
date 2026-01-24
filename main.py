@@ -55,13 +55,11 @@ def search_flights():
 @app.route('/book_flight/<flight_id>/<class_type>')
 def book_flight(flight_id, class_type):
     """Process flight selection and move to passenger details"""
-    # אין בדיקות - הטיסה כבר נבדקה בשלב החיפוש
     search_params = session.get('search_params')
     if not search_params:
         flash('Please search for flights first', 'error')
         return redirect(url_for('homepagenew'))
 
-    # שליפת פרטי הטיסה רק לתצוגה
     flights = find_flights_by(flight_id=flight_id)
     flight = flights[0] if flights else {}
 
@@ -74,13 +72,11 @@ def book_flight(flight_id, class_type):
         'flight': flight
     }
 
-    # טעינת נתוני משתמש רשום אם קיים
     user_data = None
     if 'email' in session and session.get('user_type') == 'customer':
         user_email = session.get('email')
         user_data = get_assigned_customer(user_email)
 
-    # מעבר ישיר לדף פרטי הנוסעים
     return render_template("booking_step1.html",
                            flight=flight,
                            class_type=class_type,
@@ -96,7 +92,6 @@ def booking_step1_process():
         flash('Please start booking process again', 'error')
         return redirect(url_for('homepagenew'))
 
-    # עדכון נתוני ההזמנה עם כל הפרטים הנדרשים
     session['booking_data'].update({
         'first_name': request.form.get('first_name'),
         'last_name': request.form.get('last_name'),
@@ -106,7 +101,6 @@ def booking_step1_process():
         'birth_date': request.form.get('birth_date')
     })
 
-    # בדיקה אם המשתמש רשום
     email = request.form.get('email')
     is_registered = assigned_customer_exists(email)
     session['booking_data']['is_registered'] = is_registered
@@ -128,10 +122,9 @@ def booking_step2():
 
     booking_data = session['booking_data']
     flight_id = booking_data['flight_id']
-    class_type = booking_data['class_type']  # המחלקה כבר נבחרה
+    class_type = booking_data['class_type']
     passengers_count = booking_data['passengers_count']
 
-    # קבלת מקומות פנויים רק למחלקה הנבחרת
     available_seats = get_available_seats(flight_id, class_type)
     total_price = get_price(num_seats=int(passengers_count),
                             flight_id=booking_data['flight_id'],
@@ -161,9 +154,7 @@ def complete_booking():
         email = booking_data['email']
         is_registered = booking_data['is_registered']
 
-        # אם זה אורח - נשאיר אותו אורח ולא ניצור customer
         if not is_registered:
-            # הוספה לטבלת Guests (לא Customers)
             if not guest_exists(email):
                 insert_customer_details(
                     First_name=booking_data['first_name'],
@@ -171,14 +162,13 @@ def complete_booking():
                     email=email,
                     passport_num=int(booking_data['passport_number']),
                     date_of_birth=datetime.strptime(booking_data['birth_date'], '%Y-%m-%d').date(),
-                    is_signed_up=False  # זה יכניס ל-Guests
+                    is_signed_up=False
                 )
 
-            # הוספת טלפון לטבלת GuestsPhoneNumbers
+            #  GuestsPhoneNumbers
             if booking_data.get('phone'):
                 insert_phones(email, [ph for ph in booking_data['phone'] if is_phone_assigned(email, ph)], is_signed_up=False)
 
-        # יצירת הזמנה - בטבלה הנכונה לפי סוג המשתמש
         flights = find_flights_by(flight_id=booking_data['flight_id'])
         plain_id = flights[0]['PlainID'] if flights else None
 
@@ -190,7 +180,6 @@ def complete_booking():
             is_signed_up=is_registered  # GuestOrders אם False, CustomerOrders אם True
         )
 
-        # הוספת מקומות ישיבה לטבלה הנכונה
         seat_data = []
         for seat in booking_data['selected_seats']:
             if '-' in seat:
@@ -203,7 +192,7 @@ def complete_booking():
         total_price = get_price(num_seats=len(seat_data),
                                 flight_id=booking_data['flight_id'],
                                 class_type=booking_data['class_type'])
-        # ניקוי session
+        #  session
         session.pop('booking_data', None)
         session.pop('search_params', None)
 
@@ -324,7 +313,6 @@ def users_page():
     orders = get_customer_history(user_email)
     for i in range(len(orders)):
         orders[i]['cancellable'] = (orders[i]['TakeOffTime'] - datetime.now()) > timedelta(hours=36)
-    # --- הוספה חדשה: שליפת שדות תעופה עבור מנוע החיפוש ---
     airports = get_all_fields()
 
     return render_template("users_page.html", orders=orders, airports=airports)
@@ -381,7 +369,6 @@ def flights():
 
         if origin and destination and origin == destination:
             flash("Source and Destination cannot be the same field.", "error")
-            # מחזירים אותו לדף הבית לנסות שוב
             if session.get("on_search"):
                 return redirect(url_for('search_flights'))
             return redirect(url_for('homepagenew'))
@@ -494,7 +481,7 @@ def manage_order():
         order = get_order(order_id, email)
 
         if order:
-            session['temp_email'] = email  # ← זה החלק החשוב!
+            session['temp_email'] = email
             session['temp_order_id'] = order_id
             return redirect(url_for('booking_details', order_id=order_id))
 
@@ -519,7 +506,7 @@ def booking_details(order_id):
 
     if not order:
         flash('Booking not found', 'error')
-        return redirect(url_for('manage_order'))  # ← שינוי: חזרה ל-manage_order
+        return redirect(url_for('manage_order'))
 
     flight_time_str = order["TakeOffTime"]
 
@@ -571,8 +558,8 @@ def add_flight_step1():
         session['flight_data'] = {
             'source_field': source_field,
             'destination_field': destination_field,
-            'takeoff_date': takeoff_date,  # שמירה נפרדת
-            'takeoff_time': takeoff_time,  # שמירה נפרדת
+            'takeoff_date': takeoff_date,
+            'takeoff_time': takeoff_time,
             'takeoff_datetime': f"{takeoff_date} {takeoff_time}",
             'flight_category': flight_category,
             'is_long_flight': flight_category == 'Long'
@@ -592,8 +579,7 @@ def add_flight_step2():
         return redirect(url_for('add_flight_step1'))
 
     if request.method == 'POST':
-        # תיקון: קריאה לשדה הנכון מהHTML
-        selected_plane = request.form.get('plane_id')  # במקום 'PlainID'
+        selected_plane = request.form.get('plane_id')
         session['flight_data']['selected_plane'] = selected_plane
         return redirect(url_for('add_flight_step3'))
 
@@ -626,7 +612,6 @@ def add_flight_step3():
         return redirect(url_for('add_flight_step1'))
 
     if request.method == 'POST':
-        # תיקון: קבלת מחירים בצורה דינמית
         pricing = {}
         for key, value in request.form.items():
             if key.startswith('price_') and value:
@@ -639,7 +624,6 @@ def add_flight_step3():
             'pricing': pricing
         })
 
-        # תיקון: מעבר לשלב 4 הנכון
         return redirect(url_for('add_flight_step4'))
 
     takeoff_datetime = datetime.strptime(session['flight_data']['takeoff_datetime'], '%Y-%m-%d %H:%M')
@@ -647,21 +631,17 @@ def add_flight_step3():
     source_field = session['flight_data']['source_field']
     destination_field = session['flight_data']['destination_field']
 
-    # תיקון: שימוש בנתון שכבר יש לנו
     is_long_flight = session['flight_data']['is_long_flight']
 
     available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field, destination_field, is_long_flight)
     available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field, destination_field, is_long_flight)
 
-    # קבלת מחלקות המטוס
     selected_plane_id = session['flight_data'].get('selected_plane')
     classes = []
     if selected_plane_id:
-        # הנחה שיש לך פונקציה לקבלת מחלקות המטוס
-        classes = [{'ClassName': 'Economy'}, {'ClassName': 'Business'}]  # או פונקציה מתאימה
+        classes = [{'ClassName': 'Economy'}, {'ClassName': 'Business'}]
 
-    # תיקון: הוספת required_pilots ו-required_attendants
-    plane_size = 'Large' if is_long_flight else 'Small'  # או לוגיקה מתאימה
+    plane_size = 'Large' if is_long_flight else 'Small'
     required_pilots = 3 if plane_size == 'Large' else 2
     required_attendants = 6 if plane_size == 'Large' else 3
 
@@ -688,11 +668,9 @@ def add_flight_step4():
 
     flight_data = session['flight_data']
 
-    # שחזור המידע המלא
     takeoff_datetime = datetime.strptime(flight_data['takeoff_datetime'], '%Y-%m-%d %H:%M')
     landing_datetime = takeoff_datetime + timedelta(hours=8)
 
-    # מציאת המטוס הנבחר
     all_available_planes = find_available_plains(
         take_off_time=takeoff_datetime,
         landing_time=landing_datetime,
@@ -710,7 +688,6 @@ def add_flight_step4():
                 selected_plane = plane
                 break
 
-    # מציאת הצוות הנבחר
     available_pilots = get_available_pilots(
         takeoff_datetime,
         landing_datetime,
@@ -749,7 +726,6 @@ def add_flight_step4():
                 flash(f"Cannot add flight without {' and '.join(missing)}.", "error")
                 return redirect(url_for('add_flight_step4'))
 
-            # יצירת הטיסה
             flight_id = insert_flight(
                 plain_id=flight_data['selected_plane'],
                 take_off_time=takeoff_datetime,
@@ -757,16 +733,13 @@ def add_flight_step4():
                 destination_field=flight_data['destination_field']
             )
 
-            # הוספת מחירים
             pricing = flight_data.get('pricing')
             if pricing:
                 plain_id = flight_data['selected_plane']
                 insert_flight_prices(flight_id, plain_id, list(pricing.items()))
 
-            # הוספת דיילים שעובדים בטיסה
             insert_working_attendants(flight_id, attendant_ids)
 
-            # הוספת טייסים שעובדים בטיסה
             insert_working_pilots(flight_id, pilot_ids)
 
             session.pop('flight_data', None)
@@ -776,7 +749,6 @@ def add_flight_step4():
         except Exception as e:
             flash(f'Error adding flight: {str(e)}', 'error')
 
-    # העברת המשתנים לHTML
     return render_template("add_flight_step4.html",
                            flight_data=flight_data,
                            selected_plane=selected_plane,
