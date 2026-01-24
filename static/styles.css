@@ -1244,7 +1244,7 @@ thead {
 
 th {
     padding: var(--space-xl);
-    text-align: center; /* <--- כאן היה השינוי מ-left ל-center */
+    text-align: center;
     font-weight: 700;
     font-size: 0.95rem;
     text-transform: uppercase;
