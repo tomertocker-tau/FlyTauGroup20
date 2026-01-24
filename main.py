@@ -547,9 +547,9 @@ def add_flight_step1():
             flash('Can only Schedule Flight for Future', 'error')
             found_error = True
         flight_category = get_flight_category(source_field, destination_field)
-        flight_duration = select("Routes", ["FlightDuration"],
-                                 where=f"Routes.SourceField={session['flight_data']['source_field']} AND "
-                                       f"Routes.DestinationField={session['flight_data']['destination_field']}")[0]["FlightDuration"]
+        flight_duration = select("Routes", ["Routes.FlightDuration"],
+                                 where=f"Routes.SourceField='{source_field}' AND "
+                                       f"Routes.DestinationField='{destination_field}'")[0]["FlightDuration"]
         landing_datetime = takeoff_datetime + flight_duration
         if destination_field and source_field and destination_field == source_field:
             flash("Cannot plan a flight from field to itself", 'error')
@@ -613,9 +613,9 @@ def add_flight_step2():
         return redirect(url_for('add_flight_step3'))
 
     takeoff_datetime = datetime.strptime(session['flight_data']['takeoff_datetime'], '%Y-%m-%d %H:%M')
-    flight_duration = select("Routes", ["FlightDuration"],
-                             where=f"Routes.SourceField={session['flight_data']['source_field']} AND "
-                                   f"Routes.DestinationField={session['flight_data']['destination_field']}")[0]["FlightDuration"]
+    flight_duration = select("Routes", ["Routes.FlightDuration"],
+                             where=f"Routes.SourceField='{session['flight_data']['source_field']}' AND "
+                                   f"Routes.DestinationField='{session['flight_data']['destination_field']}'")[0]["FlightDuration"]
     landing_datetime = takeoff_datetime + flight_duration
     available_planes = find_available_plains(
         take_off_time=takeoff_datetime,
@@ -624,7 +624,6 @@ def add_flight_step2():
         destination_field=session['flight_data']['destination_field'],
         is_long_flight=session['flight_data']['is_long_flight']
     )
-    session["flight_data"]["available_plains"] = available_planes
     if not available_planes:
         flash('No available planes for this route and time', 'error')
         return redirect(url_for('add_flight_step1'))
@@ -657,24 +656,20 @@ def add_flight_step3():
         found_error = False
         if session["flight_data"]["plain_size"] == "Large":
             if len(session["flight_data"]["selected_attendants"]) <= 5:
-                flash("Not enough attendants available", "error")
+                flash("Need 6 attendants", "error")
                 found_error = True
             if len(session["flight_data"]["selected_pilots"]) <= 2:
-                flash("Not enough pilots available", "error")
+                flash("Need 3 pilots", "error")
                 found_error = True
         else:
             if len(session["flight_data"]["selected_attendants"]) <= 2:
-                flash("Not enough attendants available", "error")
+                flash("Need 3 attendants", "error")
                 found_error = True
             if len(session["flight_data"]["selected_pilots"]) <= 1:
-                flash("Not enough pilots available", "error")
+                flash(f"Need 2 pilots", "error")
                 found_error = True
-        if found_error:
-            return render_template("add_flight_step2.html",
-                                   planes=session["flight_data"]["available_plains"],
-                                   flight_data=session['flight_data'])
-        session["flight_data"].pop("available_plains")
-        return redirect(url_for('add_flight_step4'))
+        if not found_error:
+            return redirect(url_for('add_flight_step4'))
 
     takeoff_datetime = datetime.strptime(session['flight_data']['takeoff_datetime'], '%Y-%m-%d %H:%M')
     landing_datetime = takeoff_datetime + timedelta(hours=8)
@@ -708,7 +703,7 @@ def add_flight_step3():
     if selected_plane_id:
         classes = [{'ClassName': 'Economy'}, {'ClassName': 'Business'}]
 
-    plane_size = 'Large' if is_long_flight else 'Small'
+    plane_size = session["flight_data"]["plain_size"]
     required_pilots = 3 if plane_size == 'Large' else 2
     required_attendants = 6 if plane_size == 'Large' else 3
 
