@@ -3,6 +3,12 @@ from typing import Union, Dict, List, Tuple
 from datetime import datetime
 
 def occupied_seats_by_flight_and_class_query(include_cancelled: bool = False):
+    '''
+
+    :param include_cancelled: if true, cancelled orders are included. defaults to false.
+    :return: str query to get occupied seats with all columns of all orders and order selected seats tables
+                str structure: '(<query>) AS S'
+    '''
     where_customer = "CustomerOrders.OrderStatus NOT IN ('System_Cancelled', 'Customer_Cancelled')" if not include_cancelled else None
     customer_query = get_select_query("CustomerOrders",
                                       [
@@ -26,6 +32,12 @@ def occupied_seats_by_flight_and_class_query(include_cancelled: bool = False):
 
 
 def count_occupied_seats_query():
+    '''
+
+    :return: str query to count occupied seats by flight and class.
+                str structure: '(<flights with orders>) UNION (<flights with no orders>)'
+                columns: FlightID, ClassType, PlainID, OccupiedSeats
+    '''
     union_query = occupied_seats_by_flight_and_class_query()
     occupied_query = get_select_query(union_query, ["S.FlightID", "S.ClassType", "S.PlainID", "COUNT(S.OrderID) AS OccupiedSeats"],
                   group_by=["S.FlightID", "S.ClassType", "S.PlainID"])
@@ -37,12 +49,24 @@ def count_occupied_seats_query():
     return f"({occupied_query}) UNION ({empty_flights_query})"
 
 def get_flights_capacity_query():
+    '''
+
+    :return: str query to get flights capacity by flight and class.
+                str structure: 'SELECT <columns> FROM Flights JOIN ...'
+                columns: FlightID, ClassType, PlainID, Capacity
+    '''
     flights_query = get_select_query("Flights",
                                      ["Flights.FlightID", "Flights.PlainID", "Class.ClassType", "Class.NumberRows*Class.NumberCols AS Capacity"],
                                      join=("Class", ["PlainID"]))
     return flights_query
 
 def count_available_seats_query():
+    '''
+
+    :return: str query to count available seats by flight and class.
+                str structure: 'SELECT <columns> FROM (<query>)'
+                columns: FlightID, ClassType, PlainID, AvailableSeats
+    '''
     occupied_query = count_occupied_seats_query()
     capacity_query = get_flights_capacity_query()
     joint_query = get_select_query(f"({occupied_query}) AS OS",
@@ -53,7 +77,13 @@ def count_available_seats_query():
                              "Joint.Capacity - Joint.OccupiedSeats AS AvailableSeats"])
 
 def available_class_prices_query(atleast: int  = 0):
+    '''
 
+    :param atleast: the least number of available seats we filter
+    :return: str query to find prices of available flights by flight and class.
+                str structure: 'SELECT <columns> FROM (<query>) JOIN ...'
+                columns: FlightID, ClassType, PlainID, Price
+    '''
     count_seats = count_available_seats_query()
     if atleast < 0:
         atleast = 0
@@ -64,6 +94,13 @@ def available_class_prices_query(atleast: int  = 0):
     return prices_by_class
 
 def table_class_prices_query(atleast: int = 0):
+    '''
+
+    :param atleast: the least number of available seats we filter
+    :return: str query to find prices of available flights by flight and class
+                str structure: 'SELECT <columns> FROM (<query>) JOIN ...'
+                columns: FlightID, [classtype1]_price, [classtype2]_price,...
+    '''
     classes = select("Class", ["Class.ClassType"], group_by=["Class.ClassType"])
     classes = [cls["ClassType"] for cls in classes]
     price_seats = available_class_prices_query(atleast)
@@ -81,12 +118,23 @@ def table_class_prices_query(atleast: int = 0):
     return t_cols
 
 def get_flights_with_landing_query():
+    '''
+
+    :return: Flights table with landing time
+                str structure: 'SELECT <columns> FROM Flights JOIN ...'
+    '''
     q_join = get_select_query("Flights",
                               ["Flights.*", "DATE_ADD(Flights.TakeOffTime, INTERVAL Routes.FlightDuration MINUTE) AS LandingTime"],
                               join=("Routes", ["SourceField", "DestinationField"]))
     return q_join
 
 def flight_status_query():
+    '''
+
+    :return: flights status table
+                str structure: 'SELECT <columns> FROM (<query>) JOIN ...'
+                columns: FlightID, FlightStatus
+    '''
     q_count_available_seats = count_available_seats_query()
     q_count_by_flight = get_select_query(f"({q_count_available_seats}) AS FC",
                                          ["FC.FlightID","SUM(FC.AvailableSeats) AS TotalAvailableSeats"],
@@ -114,6 +162,19 @@ def get_availables_query(origin_table: str,
                          source_field: str,
                          destination_field: str,
                          is_long_flight: bool):
+     '''
+
+     :param origin_table: which availables we search: Pilots | FlightAttendants | Plains
+     :param pivot_column: column to identify available: PilotID | AttendantID | PlainID
+     :param take_off_time: availability in which take-off time
+     :param landing_time: availability in which landing time
+     :param source_field: source of flight to be available in
+     :param destination_field: destination of flight to be available in
+     :param is_long_flight: if flight is long True else False
+     :return: table of availables requested
+                str structure: '(<entire-query>) AS Q'
+                columns: pivot_column (PilotID/AttendantID/PlainID)
+     '''
      if (pivot_column == "PlainID" and origin_table == "Plains"):
          cond_qualify = f"{origin_table}.Size='Large'" if is_long_flight else None
          q_table = get_select_query(f"({get_flights_with_landing_query()}) AS FT",
