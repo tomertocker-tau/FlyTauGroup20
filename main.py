@@ -541,17 +541,44 @@ def add_flight_step1():
         destination_field = request.form.get('destination_field')
         takeoff_date = request.form.get('takeoff_date')
         takeoff_time = request.form.get('takeoff_time')
+        takeoff_datetime = datetime.strptime(f"{takeoff_date} {takeoff_time}", '%Y-%m-%d %H:%M')
         found_error = False
         if datetime.strptime(takeoff_date, '%Y-%m-%d') <= datetime.today():
             flash('Can only Schedule Flight for Future', 'error')
             found_error = True
         flight_category = get_flight_category(source_field, destination_field)
+        flight_duration = select("Routes", ["FlightDuration"],
+                                 where=f"Routes.SourceField={session['flight_data']['source_field']} AND "
+                                       f"Routes.DestinationField={session['flight_data']['destination_field']}")[0]["FlightDuration"]
+        landing_datetime = takeoff_datetime + flight_duration
         if destination_field and source_field and destination_field == source_field:
             flash("Cannot plan a flight from field to itself", 'error')
             found_error = True
         elif not flight_category:
             flash('Route does not exist', 'error')
             found_error = True
+        else:
+            available_plains = find_available_plains(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
+            available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
+            available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field, destination_field, flight_category=="Long")
+            if len(available_plains) == 0:
+                flash("No plain available", "error")
+                found_error = True
+            if flight_category == "Long" or all(pl["Size"]=="Large" for pl in available_plains):
+                if len(available_attendants) <= 5:
+                    flash("Not enough attendants available", "error")
+                    found_error = True
+                if len(available_pilots) <= 2:
+                    flash("Not enough pilots available", "error")
+                    found_error = True
+            elif flight_category == "Short":
+                if len(available_attendants) <= 2:
+                    flash("Not enough attendants available", "error")
+                    found_error = True
+                if len(available_pilots) <= 1:
+                    flash("Not enough pilots available", "error")
+                    found_error = True
+
         if found_error:
             return render_template("add_flight_step1.html", airports=airports)
 
@@ -581,11 +608,15 @@ def add_flight_step2():
     if request.method == 'POST':
         selected_plane = request.form.get('plane_id')
         session['flight_data']['selected_plane'] = selected_plane
+        session['flight_data']['plain_size'] = select("Plains", ["Plains.Size"],
+                                                      where=f"Plains.PlainID={selected_plane}")[0]["Size"]
         return redirect(url_for('add_flight_step3'))
 
     takeoff_datetime = datetime.strptime(session['flight_data']['takeoff_datetime'], '%Y-%m-%d %H:%M')
-    landing_datetime = takeoff_datetime + timedelta(hours=8)
-
+    flight_duration = select("Routes", ["FlightDuration"],
+                             where=f"Routes.SourceField={session['flight_data']['source_field']} AND "
+                                   f"Routes.DestinationField={session['flight_data']['destination_field']}")[0]["FlightDuration"]
+    landing_datetime = takeoff_datetime + flight_duration
     available_planes = find_available_plains(
         take_off_time=takeoff_datetime,
         landing_time=landing_datetime,
@@ -593,7 +624,7 @@ def add_flight_step2():
         destination_field=session['flight_data']['destination_field'],
         is_long_flight=session['flight_data']['is_long_flight']
     )
-
+    session["flight_data"]["available_plains"] = available_planes
     if not available_planes:
         flash('No available planes for this route and time', 'error')
         return redirect(url_for('add_flight_step1'))
@@ -623,7 +654,26 @@ def add_flight_step3():
             'selected_attendants': request.form.getlist('attendants'),
             'pricing': pricing
         })
-
+        found_error = False
+        if session["flight_data"]["plain_size"] == "Large":
+            if len(session["flight_data"]["selected_attendants"]) <= 5:
+                flash("Not enough attendants available", "error")
+                found_error = True
+            if len(session["flight_data"]["selected_pilots"]) <= 2:
+                flash("Not enough pilots available", "error")
+                found_error = True
+        else:
+            if len(session["flight_data"]["selected_attendants"]) <= 2:
+                flash("Not enough attendants available", "error")
+                found_error = True
+            if len(session["flight_data"]["selected_pilots"]) <= 1:
+                flash("Not enough pilots available", "error")
+                found_error = True
+        if found_error:
+            return render_template("add_flight_step2.html",
+                                   planes=session["flight_data"]["available_plains"],
+                                   flight_data=session['flight_data'])
+        session["flight_data"].pop("available_plains")
         return redirect(url_for('add_flight_step4'))
 
     takeoff_datetime = datetime.strptime(session['flight_data']['takeoff_datetime'], '%Y-%m-%d %H:%M')
@@ -635,7 +685,24 @@ def add_flight_step3():
 
     available_pilots = get_available_pilots(takeoff_datetime, landing_datetime, source_field, destination_field, is_long_flight)
     available_attendants = get_available_attendants(takeoff_datetime, landing_datetime, source_field, destination_field, is_long_flight)
-
+    found_error = False
+    if is_long_flight or session["flight_data"]["plain_size"] == "Large":
+        if len(available_attendants) <= 5:
+            flash("Not enough attendants available", "error")
+            found_error = True
+        if len(available_pilots) <= 2:
+            flash("Not enough pilots available", "error")
+            found_error = True
+    else:
+        if len(available_attendants) <= 2:
+            flash("Not enough attendants available", "error")
+            found_error = True
+        if len(available_pilots) <= 1:
+            flash("Not enough pilots available", "error")
+            found_error = True
+    if found_error:
+        flash('Please get a smaller plain', 'error')
+        return redirect(url_for('add_flight_step2'))
     selected_plane_id = session['flight_data'].get('selected_plane')
     classes = []
     if selected_plane_id:
