@@ -38,65 +38,18 @@ Session(app)
 @app.route('/')
 def homepagenew():
     """Homepage with search functionality"""
-    if session.get("user_type", "user") == "admin":
-        return redirect(url_for("managers_page"))
-    if session.get("user_type", "user") == "customer":
-        return redirect(url_for("users_page"))
+    session["on_search"] = False
     airports = get_all_fields()
     return render_template("homepagenew.html", airports=airports)
 
 @app.route('/search_flights', methods=['GET', 'POST'])
 def search_flights():
     """Handle flight search and show available flights"""
-    if request.method == 'POST':
-        source_field = request.form.get('source')
-        destination_field = request.form.get('destination')
-        take_off_date = request.form.get('takeoff_date')
-        passengers_amount = request.form.get('passengers', type=int)
-
-        if source_field == destination_field:
-            flash("Source and Destination cannot be the same field.", "error")
-            # מחזירים אותו לדף הבית לנסות שוב
-            return redirect(url_for('homepagenew'))
-
-        if not all([source_field, destination_field, take_off_date, passengers_amount]):
-            flash('Please fill all required fields', 'error')
-            return redirect(url_for('homepagenew'))
-
-        session['search_params'] = {
-            'source': source_field,
-            'destination': destination_field,
-            'date': take_off_date,
-            'passengers': passengers_amount
-        }
-
-        takeoff_datetime = datetime.strptime(take_off_date, '%Y-%m-%d')
-
-        # חיפוש טיסות - רק כאלה שיש בהן מספיק מקומות פנויים
-        flights = find_flights_by(
-            source_field=source_field,
-            destination_field=destination_field,
-            after_time=takeoff_datetime - timedelta(minutes=1),
-            before_time=takeoff_datetime + timedelta(days=1),
-            num_seats=passengers_amount  # כבר מסנן רק טיסות עם מספיק מקומות
-        )
-
-        return render_template("flight_search_results.html",
-                               flights=flights,
-                               search_params=session.get('search_params'))
-
-    return redirect(url_for('homepagenew'))
-@app.route('/flight_search_results')
-def flight_search_results():
-    """Show flight search results page (when accessed directly)"""
-    if 'search_params' not in session:
-        flash('Please search for flights first', 'error')
-        return redirect(url_for('homepagenew'))
-
-    # אם מגיעים לכאן ישירות - להציג את התוצאות שבsession
-    return render_template("flight_search_results.html",
-                           flights=session.get('flights', []),
-                           search_params=session.get('search_params'))
+    airports = get_all_fields()
+    if session.get("user_type", "user") == "customer":
+        session["on_search"] = True
+        return render_template("users_page.html", airports=airports)
+    return render_template("homepagenew.html",airports=airports, on_search=True)
 
 
 @app.route('/book_flight/<flight_id>/<class_type>')
@@ -364,7 +317,8 @@ def users_page():
     if 'email' not in session or session.get('user_type') != 'customer':
         flash('Please login to access this page', 'error')
         return redirect(url_for('login_new'))
-
+    if 'temp_email' in session:
+        session.pop('temp_email')
     # Get customer orders for display
     user_email = session.get("email")
     orders = get_customer_history(user_email)
@@ -428,6 +382,8 @@ def flights():
         if origin and destination and origin == destination:
             flash("Source and Destination cannot be the same field.", "error")
             # מחזירים אותו לדף הבית לנסות שוב
+            if session.get("on_search"):
+                return redirect(url_for('search_flights'))
             return redirect(url_for('homepagenew'))
 
         # Store search parameters
@@ -465,7 +421,8 @@ def customer_history():
     if 'email' not in session:
         flash('Please login to view history', 'error')
         return redirect(url_for('login_new'))
-
+    if 'temp_email' in session:
+        session.pop('temp_email')
     user_email = session.get("email")
     status = request.form.get("status")
 
@@ -482,7 +439,12 @@ def cancel_order():
         try:
             order_id = request.form.get('order_id')
             user_type = session.get('user_type', 'guest')
+            if session.get("temp_email"):
+                email = session['temp_email']
+            else:
+                email = session['email']
             assert user_type in ['guest', 'customer'], "Admins not allowed to cancel orders"
+            assert assigned_customer_exists(email) or guest_exists(email), f"No Customer {email} exists"
             delete_order(order_id, is_signed_up=user_type == 'customer')
             flash('Order cancelled successfully', 'success')
         except Exception as e:

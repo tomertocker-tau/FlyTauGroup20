@@ -6,10 +6,12 @@
 <div class="hero-section">
     <div class="hero-content">
         <!-- Welcome Text - Prominent and Centered -->
+        {% if on_search is not defined or not on_search %}
         <div class="welcome-text">
             <h1 class="welcome-title">Welcome to FLYTAU</h1>
             <p class="welcome-subtitle">Your trusted partner in the skies</p>
         </div>
+        {% endif %}
 
         <!-- Search Container with Horizontal Layout -->
         <div class="search-container">
@@ -60,6 +62,7 @@
         </div>
 
         <!-- Quick Actions Below Search -->
+        {% if on_search is not defined or not on_search %}
         <div class="quick-actions">
             <div class="action-card">
                 <a href="{{ url_for('manage_order') }}" class="action-link">
@@ -77,6 +80,7 @@
                 </a>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
