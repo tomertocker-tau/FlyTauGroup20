@@ -17,14 +17,14 @@ from reports_utils import (
     get_summary_statistics
 )
 
-app = Flask(__name__)
+application = Flask(__name__)
 
-app.config["SECRET_KEY"] = secrets.token_hex(32)
+application.config["SECRET_KEY"] = secrets.token_hex(32)
 
 SESSION_DIR = os.path.join(os.path.dirname(__file__), "flask_session_data")
 os.makedirs(SESSION_DIR, exist_ok=True)
 
-app.config.update(
+application.config.update(
     SESSION_TYPE="filesystem",
     SESSION_FILE_DIR=SESSION_DIR,
     SESSION_PERMANENT=True,
@@ -32,17 +32,17 @@ app.config.update(
     SESSION_REFRESH_EACH_REQUEST=True,
 )
 
-Session(app)
+Session(application)
 
 
-@app.route('/')
+@application.route('/')
 def homepagenew():
     """Homepage with search functionality"""
     session["on_search"] = False
     airports = get_all_fields()
     return render_template("homepagenew.html", airports=airports)
 
-@app.route('/search_flights', methods=['GET', 'POST'])
+@application.route('/search_flights', methods=['GET', 'POST'])
 def search_flights():
     """Handle flight search and show available flights"""
     airports = get_all_fields()
@@ -52,7 +52,7 @@ def search_flights():
     return render_template("homepagenew.html",airports=airports, on_search=True)
 
 
-@app.route('/book_flight/<flight_id>/<class_type>')
+@application.route('/book_flight/<flight_id>/<class_type>')
 def book_flight(flight_id, class_type):
     """Process flight selection and move to passenger details"""
     search_params = session.get('search_params')
@@ -85,7 +85,7 @@ def book_flight(flight_id, class_type):
 
 
 
-@app.route('/booking_step1_process', methods=['POST'])
+@application.route('/booking_step1_process', methods=['POST'])
 def booking_step1_process():
     """Process passenger details form - with passport and birth date"""
     if 'booking_data' not in session:
@@ -113,7 +113,7 @@ def booking_step1_process():
     return redirect(url_for('booking_step2'))
 
 
-@app.route('/booking_step2')
+@application.route('/booking_step2')
 def booking_step2():
     """Show seat selection page - only for selected class"""
     if 'booking_data' not in session:
@@ -141,7 +141,7 @@ def booking_step2():
                            booking_data=booking_data)
 
 
-@app.route('/complete_booking', methods=['POST', 'GET'])
+@application.route('/complete_booking', methods=['POST', 'GET'])
 def complete_booking():
     """Complete the booking - save guest as guest, not customer"""
     if 'booking_data' not in session:
@@ -206,7 +206,7 @@ def complete_booking():
         flash(f'Booking failed: {str(e)}', 'error')
         return redirect(url_for('booking_step2'))
 
-@app.route('/login_new', methods=['GET', 'POST'])
+@application.route('/login_new', methods=['GET', 'POST'])
 def login_new():
     """Customer login"""
     if request.method == 'POST':
@@ -225,7 +225,7 @@ def login_new():
     return render_template("login_new.html")
 
 
-@app.route('/signup_new', methods=['GET', 'POST'])
+@application.route('/signup_new', methods=['GET', 'POST'])
 def signup_new():
     """Customer registration"""
     if request.method == 'POST':
@@ -281,7 +281,7 @@ def signup_new():
     return render_template("signup_new.html")
 
 
-@app.route('/login_admin', methods=['GET', 'POST'])
+@application.route('/login_admin', methods=['GET', 'POST'])
 def login_admin():
     """Manager/Admin login"""
     if request.method == 'POST':
@@ -300,7 +300,7 @@ def login_admin():
     return render_template("login_admin.html")
 
 
-@app.route('/users_page')
+@application.route('/users_page')
 def users_page():
     """Customer dashboard/main page"""
     if 'email' not in session or session.get('user_type') != 'customer':
@@ -317,7 +317,7 @@ def users_page():
 
     return render_template("users_page.html", orders=orders, airports=airports)
 
-@app.route('/managers_page')
+@application.route('/managers_page')
 def managers_page():
     """Manager dashboard"""
     if 'ID' not in session or session.get('user_type') != 'manager':
@@ -327,7 +327,7 @@ def managers_page():
     return render_template("managers_page.html")
 
 
-@app.route('/managers_reports_page')
+@application.route('/managers_reports_page')
 def managers_reports_page():
     """Manager statistics and reports page with charts"""
     if 'ID' not in session or session.get('user_type') != 'manager':
@@ -358,7 +358,7 @@ def managers_reports_page():
         return redirect(url_for('managers_page'))
 
 
-@app.route('/flights', methods=['GET', 'POST'])
+@application.route('/flights', methods=['GET', 'POST'])
 def flights():
     """Flight search from users page"""
     if request.method == 'POST':
@@ -402,7 +402,7 @@ def flights():
     return render_template("users_page.html" if session.get('user_type') == 'customer' else "homepagenew.html")
 
 
-@app.route("/customer_history", methods=['POST', 'GET'])
+@application.route("/customer_history", methods=['POST', 'GET'])
 def customer_history():
     """View customer flight history"""
     if 'email' not in session:
@@ -420,7 +420,7 @@ def customer_history():
     return render_template("users_page.html", orders=orders, by_status=status)
 
 
-@app.route('/cancel_order', methods=['GET', 'POST'])
+@application.route('/cancel_order', methods=['GET', 'POST'])
 def cancel_order():
     if request.method == 'POST': 
         try:
@@ -440,7 +440,7 @@ def cancel_order():
     return redirect(url_for('homepagenew'))
 
 
-@app.route('/cancel_confirmation', methods=['POST', 'GET'])
+@application.route('/cancel_confirmation', methods=['POST', 'GET'])
 def cancel_confirmation():
     if 'temp_email' in session:
         user_email = session.get('temp_email')
@@ -459,7 +459,7 @@ def cancel_confirmation():
     return render_template("cancel_confirmation.html", order=order)
 
 
-@app.route('/flight_board')
+@application.route('/flight_board')
 def flight_board():
     """Display flight board page"""
     # Get all current flights
@@ -467,7 +467,7 @@ def flight_board():
     return render_template("flight_board.html", flights=flights)
 
 
-@app.route('/manage_order', methods=['GET', 'POST'])
+@application.route('/manage_order', methods=['GET', 'POST'])
 def manage_order():
     """Manage order - find and display booking details"""
     if request.method == 'POST':
@@ -492,7 +492,7 @@ def manage_order():
 
 
 
-@app.route('/booking_details/<order_id>')
+@application.route('/booking_details/<order_id>')
 def booking_details(order_id):
     if 'temp_email' in session:
         user_email = session.get('temp_email')
@@ -524,13 +524,13 @@ def booking_details(order_id):
     return render_template("booking_details.html",
                            order=order,
                            show_cancel_button=is_cancellable)
-@app.route('/layout')
+@application.route('/layout')
 def layout():
     """Layout/template page"""
     return render_template("layout.html")
 
 
-@app.route('/add_flight_step1', methods=['GET', 'POST'])
+@application.route('/add_flight_step1', methods=['GET', 'POST'])
 def add_flight_step1():
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
@@ -602,7 +602,7 @@ def add_flight_step1():
     return render_template("add_flight_step1.html", airports=airports)
 
 
-@app.route('/add_flight_step2', methods=['GET', 'POST'])
+@application.route('/add_flight_step2', methods=['GET', 'POST'])
 def add_flight_step2():
     if 'ID' not in session or session.get('user_type') != 'manager':
         return redirect(url_for('login_admin'))
@@ -639,7 +639,7 @@ def add_flight_step2():
                            flight_data=session['flight_data'])
 
 
-@app.route('/add_flight_step3', methods=['GET', 'POST'])
+@application.route('/add_flight_step3', methods=['GET', 'POST'])
 def add_flight_step3():
     if 'ID' not in session or session.get('user_type') != 'manager':
         return redirect(url_for('login_admin'))
@@ -726,7 +726,7 @@ def add_flight_step3():
                            flight_data=session['flight_data'])
 
 
-@app.route('/add_flight_step4', methods=['GET', 'POST'])
+@application.route('/add_flight_step4', methods=['GET', 'POST'])
 def add_flight_step4():
     if 'ID' not in session or session.get('user_type') != 'manager':
         return redirect(url_for('login_admin'))
@@ -829,7 +829,7 @@ def add_flight_step4():
                            takeoff_time=flight_data['takeoff_time'],
                            flight_category=flight_data['flight_category'])
 
-@app.route('/manager_flight_table', methods=['GET', 'POST'])
+@application.route('/manager_flight_table', methods=['GET', 'POST'])
 def manager_flight_table():
 
     if 'ID' not in session or session.get('user_type') != 'manager':
@@ -891,7 +891,7 @@ def manager_flight_table():
                            month_filter=html_month_input)
 
 
-@app.route('/delete_flight/<flight_id>')
+@application.route('/delete_flight/<flight_id>')
 def delete_flight_route(flight_id):
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
@@ -922,7 +922,7 @@ def delete_flight_route(flight_id):
     return redirect(url_for('cancel_flight_confirmation', flight_id=flight_id))
 
 
-@app.route('/cancel_flight_confirmation/<flight_id>')
+@application.route('/cancel_flight_confirmation/<flight_id>')
 def cancel_flight_confirmation(flight_id):
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
@@ -937,7 +937,7 @@ def cancel_flight_confirmation(flight_id):
     return render_template("cancel_flight_confirmation.html", flight=flight)
 
 
-@app.route('/confirm_cancel_flight/<flight_id>', methods=['POST'])
+@application.route('/confirm_cancel_flight/<flight_id>', methods=['POST'])
 def confirm_cancel_flight(flight_id):
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
@@ -952,7 +952,7 @@ def confirm_cancel_flight(flight_id):
     return redirect(url_for('manager_flight_table'))
 
 
-@app.route('/add_attendant', methods=['GET', 'POST'])
+@application.route('/add_attendant', methods=['GET', 'POST'])
 def add_attendant():
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
@@ -993,7 +993,7 @@ def add_attendant():
     return render_template("add_attendant.html")
 
 
-@app.route('/add_pilot', methods=['GET', 'POST'])
+@application.route('/add_pilot', methods=['GET', 'POST'])
 def add_pilot():
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
@@ -1034,7 +1034,7 @@ def add_pilot():
     return render_template("add_pilot.html")
 
 
-@app.route('/add_plane', methods=['GET', 'POST'])
+@application.route('/add_plane', methods=['GET', 'POST'])
 def add_plane():
     if 'ID' not in session or session.get('user_type') != 'manager':
         flash('Manager access required', 'error')
@@ -1073,7 +1073,7 @@ def add_plane():
     return render_template("add_plane.html")
 
 
-@app.route('/logout')
+@application.route('/logout')
 def logout():
     """Logout user"""
     user_type = session.get('user_type', 'user')
@@ -1083,7 +1083,7 @@ def logout():
 
 
 # Context processor to make session available in templates
-@app.context_processor
+@application.context_processor
 def inject_user():
     return dict(
         user_email=session.get('email'),
@@ -1095,7 +1095,7 @@ def inject_user():
 
 
 # Template filters
-@app.template_filter('datetime')
+@application.template_filter('datetime')
 def datetime_filter(value, format='%Y-%m-%d %H:%M'):
     """Custom datetime filter for templates"""
     if isinstance(value, str):
@@ -1107,16 +1107,16 @@ def datetime_filter(value, format='%Y-%m-%d %H:%M'):
 
 
 # Error handlers
-@app.errorhandler(404)
+@application.errorhandler(404)
 def page_not_found(e):
     return render_template('homepagenew.html'), 404
 
 
-@app.errorhandler(500)
+@application.errorhandler(500)
 def internal_server_error(e):
     flash('An internal error occurred. Please try again.', 'error')
     return render_template('homepagenew.html'), 500
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    application.run(debug=True, host='0.0.0.0', port=5000)
