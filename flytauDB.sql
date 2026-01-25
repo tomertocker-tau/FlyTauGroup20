@@ -1,3 +1,4 @@
+DROP SCHEMA FLYTAU;
 CREATE SCHEMA IF NOT EXISTS FLYTAU;
 USE FLYTAU;
 CREATE TABLE IF NOT EXISTS Managers (
@@ -736,11 +737,11 @@ INSERT INTO WorkingFlightPilots (PilotID, FlightID) VALUES
 
 
 
-------------------
+
 -- חלק 1: הוספת 5 טיסות עבר (התקיימו) במטוס Dassault (PlaneID=3)
 -- נשתמש בנתיב CDG-BCN (פריז-ברצלונה) שהוא קצר ומתאים למטוס זה.
 -- תאריכים: ינואר 2024 (עבר).
-------------------
+
 
 -- 1. הוספת הטיסות לטבלת Flights
 INSERT INTO Flights (FlightID, PlainID, TakeOffTime, SourceField, DestinationField, IsDeleted)
@@ -793,11 +794,11 @@ INSERT INTO GuestOrders (OrderID, OrderStatus, OrderDate, Email, PlainID, ClassT
 (8005, 'Completed', '2023-12-20', 'guest2@example.com', 3, 'Business', 105);
 
 
-------------------
+
 -- חלק 2: יצירת נתונים לגרף הביטולים (5 חודשים שונים)
 -- ניצור 5 טיסות בחודשים שונים (מרץ-יולי 2025)
 -- וניצור עבורן הזמנות בסטטוס 'Customer_Cancelled'
-------------------
+
 
 -- 1. יצירת הטיסות (נשתמש במטוס קטן - PlaneID=6, קו AMS-FRA)
 INSERT INTO Flights (FlightID, PlainID, TakeOffTime, SourceField, DestinationField, IsDeleted)
