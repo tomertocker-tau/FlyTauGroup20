@@ -179,9 +179,9 @@ CREATE TABLE IF NOT EXISTS SelectedSeatsGuestOrders(
 );
 
 
----------------------------------------------------
+
 -- Managers
----------------------------------------------------
+
 INSERT INTO Managers
 (ManagerID, FirstName, LastName, Phone, City, Street, HomeNumber, JobStartDay, Email, UserPassword)
 VALUES
@@ -196,9 +196,9 @@ VALUES
 (1009,'Maya','Golan','050-2468101','Kfar Saba','Rothschild',4,'2020-10-10','maya.golan@flytau.com','mng1009'),
 (1010,'Omer','Halevi','050-1357913','Rehovot','Herzl',6,'2019-12-31','omer.halevi@flytau.com','mng1010');
 
----------------------------------------------------
+
 -- Pilots
----------------------------------------------------
+
 INSERT INTO Pilots
 (PilotID, FirstName, LastName, Phone, City, Street, HomeNumber, JobStartDay, Qualified4LongFlights)
 VALUES
@@ -222,9 +222,9 @@ VALUES
 (2018,'Tal','Aviv','050-2001018','Rehovot','Herzl',16,'2013-11-19',1);
 
 
----------------------------------------------------
+
 -- FlightAttendants
----------------------------------------------------
+
 INSERT INTO FlightAttendants
 (AttendantID, FirstName, LastName, Phone, City, Street, HomeNumber, JobStartDay, Qualified4LongFlights)
 VALUES
@@ -259,9 +259,9 @@ VALUES
 (3029,'Yuval','Gross','052-3001029','Hod Hasharon','HaRav Kook',6,'2019-11-11',0),
 (3030,'Ofir','Maman','052-3001030','Yavne','HaPalmach',15,'2015-05-05',1);
 
----------------------------------------------------
+
 -- Guests
----------------------------------------------------
+
 INSERT INTO Guests (Email, EngFirstName, EngLastName)
 VALUES
 ('guest1@example.com','Adam','Stone'),
@@ -275,9 +275,9 @@ VALUES
 ('guest9@example.com','Liam','White'),
 ('guest10@example.com','Sophia','Adams');
 
----------------------------------------------------
+
 -- Customers
----------------------------------------------------
+
 INSERT INTO Customers
 (Email, EngFirstName, EngLastName, PassportNumber, Birthdate, SignUpDate, UserPassword)
 VALUES
@@ -292,9 +292,9 @@ VALUES
 ('cust9@example.com','Tom','Scott',90123456,'1989-09-09','2022-09-30','cpass9'),
 ('cust10@example.com','Bella','Evans',11223344,'1995-10-10','2023-01-01','cpass10');
 
----------------------------------------------------
+
 -- GuestsPhoneNumbers
----------------------------------------------------
+
 INSERT INTO GuestsPhoneNumbers (Email, Phone)
 VALUES
 ('guest1@example.com','050-4001001'),
@@ -308,9 +308,9 @@ VALUES
 ('guest9@example.com','050-4001009'),
 ('guest10@example.com','050-4001010');
 
----------------------------------------------------
+
 -- CustomersPhoneNumbers
----------------------------------------------------
+
 INSERT INTO CustomersPhoneNumbers (Email, Phone)
 VALUES
 ('cust1@example.com','052-5001001'),
@@ -324,9 +324,9 @@ VALUES
 ('cust9@example.com','052-5001009'),
 ('cust10@example.com','052-5001010');
 
----------------------------------------------------
+
 -- Plains
----------------------------------------------------
+
 INSERT INTO Plains
 (PlainID, Manufacturer, Size, PurchaseDate)
 VALUES
@@ -341,9 +341,9 @@ VALUES
 (9,'Boeing','Small','2023-02-02'),
 (10,'Airbus','Small','2023-07-07');
 
----------------------------------------------------
+
 -- Class
----------------------------------------------------
+
 INSERT INTO Class
 (ClassType, PlainID, NumberRows, NumberCols)
 VALUES
@@ -363,10 +363,10 @@ VALUES
 ('Regular',9,20,6),
 ('Regular',10,18,6);
 
----------------------------------------------------
+
 -- Routes
 -- מעודכן: נתיבים לכל כיוון כדי לאפשר חזרה
----------------------------------------------------
+
 INSERT INTO Routes
 (SourceField, DestinationField, FlightDuration)
 VALUES
@@ -482,10 +482,10 @@ VALUES
 ('JFK - New York','BKK - Bangkok','02:00:00');
 
 
----------------------------------------------------
+
 -- Flights
 -- מעודכן: שרשראות טיסה סגורות (חוזרות לנקודת ההתחלה)
----------------------------------------------------
+
 INSERT INTO Flights
 (FlightID, PlainID, TakeOffTime, SourceField, DestinationField, IsDeleted)
 VALUES
@@ -534,9 +534,9 @@ VALUES
 (37, 9, '2027-02-19 09:00:00', 'ATH - Athens', 'TLV - Tel Aviv', 0), -- Return Leg 2
 (38, 9, '2027-02-20 16:00:00', 'TLV - Tel Aviv', 'LHR - London', 0); -- Return Leg 3 (Home)
 
----------------------------------------------------
+
 -- FlightPrices
----------------------------------------------------
+
 INSERT INTO FlightPrices
 (ClassType, FlightID, PlainID, Price)
 VALUES
@@ -579,9 +579,9 @@ VALUES
 ('Regular',37,9,200.00),
 ('Regular',38,9,340.00);
 
----------------------------------------------------
+
 -- CustomerOrders
----------------------------------------------------
+
 INSERT INTO CustomerOrders
 (OrderID, OrderStatus, OrderDate, Email, PlainID, ClassType, FlightID)
 VALUES
@@ -602,18 +602,18 @@ VALUES
 (5009,'Active','2025-01-24','cust9@example.com',7,'Regular',9);
 
 
----------------------------------------------------
+
 -- SelectedSeatsCustomerOrders
----------------------------------------------------
+
 INSERT INTO SelectedSeatsCustomerOrders
 (OrderID, Line, SeatLetter)
 VALUES
 (5001,12,3), (5002,2,1), (5003,18,4), (5004,5,2), (5005,20,6),
 (5006,14,3), (5007,9,2), (5008,3,1), (5009,11,5), (5010,7,4);
 
----------------------------------------------------
+
 -- GuestOrders
----------------------------------------------------
+
 INSERT INTO GuestOrders
 (OrderID, OrderStatus, OrderDate, Email, PlainID, ClassType, FlightID)
 VALUES
@@ -634,18 +634,18 @@ VALUES
 (6009,'Active','2025-01-24','guest9@example.com',10,'Regular',12);
 
 
----------------------------------------------------
+
 -- SelectedSeatsGuestOrders
----------------------------------------------------
+
 INSERT INTO SelectedSeatsGuestOrders
 (OrderID, Line, SeatLetter)
 VALUES
 (6001,15,4), (6002,4,1), (6003,7,2), (6004,21,6), (6005,10,3),
 (6006,8,2), (6007,19,5), (6008,6,1), (6009,13,4), (6010,9,2);
 
----------------------------------------------------
+
 -- WorkingFlightAttendants
----------------------------------------------------
+
 INSERT INTO WorkingFlightAttendants (AttendantID, FlightID) VALUES
 -- Original Flights (1-12)
 (3001,1),(3002,1),(3003,1),(3004,1),(3005,1),(3006,1),
@@ -688,9 +688,9 @@ INSERT INTO WorkingFlightAttendants (AttendantID, FlightID) VALUES
 (3012,37), (3013,37), (3014,37),
 (3012,38), (3013,38), (3014,38);
 
----------------------------------------------------
+
 -- WorkingFlightPilots
----------------------------------------------------
+
 INSERT INTO WorkingFlightPilots (PilotID, FlightID) VALUES
 -- Original Flights (1-12)
 (2001,1),(2002,1),(2003,1),
@@ -736,11 +736,11 @@ INSERT INTO WorkingFlightPilots (PilotID, FlightID) VALUES
 
 
 
----------------------------------------------------------------------
+------------------
 -- חלק 1: הוספת 5 טיסות עבר (התקיימו) במטוס Dassault (PlaneID=3)
 -- נשתמש בנתיב CDG-BCN (פריז-ברצלונה) שהוא קצר ומתאים למטוס זה.
 -- תאריכים: ינואר 2024 (עבר).
----------------------------------------------------------------------
+------------------
 
 -- 1. הוספת הטיסות לטבלת Flights
 INSERT INTO Flights (FlightID, PlainID, TakeOffTime, SourceField, DestinationField, IsDeleted)
@@ -793,11 +793,11 @@ INSERT INTO GuestOrders (OrderID, OrderStatus, OrderDate, Email, PlainID, ClassT
 (8005, 'Completed', '2023-12-20', 'guest2@example.com', 3, 'Business', 105);
 
 
----------------------------------------------------------------------
+------------------
 -- חלק 2: יצירת נתונים לגרף הביטולים (5 חודשים שונים)
 -- ניצור 5 טיסות בחודשים שונים (מרץ-יולי 2025)
 -- וניצור עבורן הזמנות בסטטוס 'Customer_Cancelled'
----------------------------------------------------------------------
+------------------
 
 -- 1. יצירת הטיסות (נשתמש במטוס קטן - PlaneID=6, קו AMS-FRA)
 INSERT INTO Flights (FlightID, PlainID, TakeOffTime, SourceField, DestinationField, IsDeleted)
