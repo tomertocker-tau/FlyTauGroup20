@@ -16,7 +16,7 @@ from reports_utils import (
     get_plane_activity_report,
     get_summary_statistics
 )
-
+from sql_base import db_cur
 application = Flask(__name__)
 
 application.config["SECRET_KEY"] = secrets.token_hex(32)
@@ -34,6 +34,17 @@ application.config.update(
 
 Session(application)
 
+@application.route("/setup_db")
+def setup_db():
+    try:
+        with open('triviaDB.sql', 'r') as f:
+            sql_script = f.read()
+        with db_cur() as cursor:
+            for result in cursor.execute(sql_script, multi=True):
+                pass
+        return "Success! Tables created from schema.sql."
+    except Exception as e:
+        return f"Error running SQL file: {str(e)}"
 
 @application.route('/')
 def homepagenew():

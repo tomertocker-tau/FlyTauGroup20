@@ -1,7 +1,13 @@
 from contextlib import contextmanager
 import mysql.connector
 from typing import Union, Dict, List, Tuple, Any
+import os
 
+DB_HOST = os.environ.get("DB_HOST", "awseb-e-v3fxmkbimq-stack-awsebrdsdatabase-eshp4ke0oxym.cj02yig8m32j.il-central-1.rds.amazonaws.com")
+DB_USER = os.environ.get("DB_USER", "rootadmin")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "rootadmin")
+DB_NAME = os.environ.get("DB_NAME", "ebdb")
+print(f"\n\n\nThe Host is {DB_HOST}\n\n\n")
 @contextmanager
 def db_cur():
     '''
@@ -12,10 +18,10 @@ def db_cur():
     cursor = None
     try:
         mydb = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="root",
-            database="flytau",
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
             autocommit=True
         )
         cursor = mydb.cursor(dictionary=True, buffered=True)
