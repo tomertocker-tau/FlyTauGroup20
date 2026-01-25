@@ -37,7 +37,7 @@ Session(application)
 @application.route("/setup_db")
 def setup_db():
     try:
-        with open('triviaDB.sql', 'r') as f:
+        with open('flytauDB.sql', 'r') as f:
             sql_script = f.read()
         with db_cur() as cursor:
             for result in cursor.execute(sql_script, multi=True):
